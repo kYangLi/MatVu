@@ -1,0 +1,214 @@
+"""Viewpoint generation, scoring and automatic selection.
+
+This module is the core of MatVu: it decides *where to look from*.
+Everything here is rendering-backend independent.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+import numpy as np
+
+from . import elements
+from .geometry import principal_axes, view_basis
+from .scene import Scene, project
+
+# Penalty weights (must sum to 1).
+W_OCCLUSION = 0.60
+W_BOND = 0.25
+W_ASPECT = 0.15
+
+
+@dataclass
+class View:
+    """A camera direction pointing from the scene towards the camera."""
+
+    direction: np.ndarray
+    up_hint: np.ndarray = field(default_factory=lambda: np.array([0.0, 0.0, 1.0]))
+
+    def __post_init__(self) -> None:
+        d = np.asarray(self.direction, dtype=float).reshape(-1)
+        if d.size != 3:
+            raise ValueError("view direction must be a 3-vector")
+        norm = float(np.linalg.norm(d))
+        if norm < 1e-12:
+            raise ValueError("view direction must be non-zero")
+        self.direction = d / norm
+        u = np.asarray(self.up_hint, dtype=float).reshape(-1)
+        if u.size != 3 or float(np.linalg.norm(u)) < 1e-12:
+            u = np.array([0.0, 0.0, 1.0])
+        self.up_hint = u / float(np.linalg.norm(u))
+
+    @property
+    def basis(self) -> np.ndarray:
+        """Camera basis ``[right, up, direction]`` as rows."""
+        return view_basis(self.direction, self.up_hint)
+
+    def angles_deg(self) -> tuple[float, float]:
+        """``(azimuth, elevation)`` of the direction, in degrees."""
+        azimuth = float(np.degrees(np.arctan2(self.direction[1], self.direction[0])))
+        elevation = float(np.degrees(np.arcsin(np.clip(self.direction[2], -1, 1))))
+        return azimuth, elevation
+
+    def __repr__(self) -> str:
+        azimuth, elevation = self.angles_deg()
+        return f"View(azimuth={azimuth:.1f} deg, elevation={elevation:.1f} deg)"
+
+
+def fibonacci_sphere(n: int) -> np.ndarray:
+    """``(n, 3)`` quasi-uniform unit vectors on the sphere."""
+    indices = np.arange(n, dtype=float) + 0.5
+    phi = np.arccos(1.0 - 2.0 * indices / n)
+    theta = np.pi * (1.0 + 5.0**0.5) * indices
+    return np.column_stack(
+        [
+            np.cos(theta) * np.sin(phi),
+            np.sin(theta) * np.sin(phi),
+            np.cos(phi),
+        ]
+    )
+
+
+def special_directions(scene: Scene) -> list[np.ndarray]:
+    """High-symmetry directions: principal axes and lattice vectors."""
+    directions: list[np.ndarray] = []
+    if scene.n_atoms:
+        weights = np.array([elements.atomic_mass(s) for s in scene.symbols])
+        _, axes = principal_axes(scene.positions, weights)
+        for k in range(3):
+            directions.append(axes[:, k])
+            directions.append(-axes[:, k])
+    if scene.lattice is not None and abs(np.linalg.det(scene.lattice)) > 1e-9:
+        for vector in scene.lattice:
+            norm = float(np.linalg.norm(vector))
+            if norm > 1e-12:
+                directions.append(vector / norm)
+                directions.append(-vector / norm)
+    return directions
+
+
+def candidate_views(scene: Scene, *, n_surface: int = 240) -> list[View]:
+    """Deduplicated candidate views: Fibonacci sphere + special directions."""
+    unique: list[np.ndarray] = []
+    for direction in list(fibonacci_sphere(n_surface)) + special_directions(scene):
+        direction = direction / np.linalg.norm(direction)
+        if all(float(np.dot(direction, other)) < 0.9986 for other in unique):
+            unique.append(direction)
+    return [View(d) for d in unique]
+
+
+def score(scene: Scene, view: View) -> dict[str, float]:
+    """Score one viewpoint. Higher ``score`` (in [0, 1]) is better.
+
+    Metrics
+    -------
+    hidden:
+        Fraction of atoms whose projected centre lies inside the projected
+        disk of a nearer atom (heavy occlusion).
+    bond_penalty:
+        Mean penalty for bonds that are strongly foreshortened (nearly
+        pointing at the camera).
+    aspect_penalty:
+        Penalty when the projected bounding box is much wider than tall
+        (or vice versa).
+    """
+    projection = project(scene, view)
+    xy, depth, radii = projection.xy, projection.depth, projection.radii
+    n_atoms = scene.n_atoms
+
+    # Occlusion: walk from the nearest atom backwards.
+    order = np.argsort(-depth)
+    covered = np.zeros(n_atoms, dtype=bool)
+    for j in order:
+        dx = xy[:, 0] - xy[j, 0]
+        dy = xy[:, 1] - xy[j, 1]
+        nearer = depth > depth[j]
+        covered |= nearer & (dx * dx + dy * dy < (0.85 * radii[j]) ** 2)
+    hidden = float(covered.sum()) / max(n_atoms, 1)
+
+    # Bond foreshortening.
+    if scene.n_bonds:
+        a, b = scene.bonds[:, 0], scene.bonds[:, 1]
+        projected = np.linalg.norm(xy[a] - xy[b], axis=1)
+        true_length = np.linalg.norm(
+            scene.positions[a] - scene.positions[b], axis=1
+        )
+        ratio = projected / np.maximum(true_length, 1e-12)
+        bond_penalty = float(np.mean(np.clip(1.0 - ratio / 0.35, 0.0, 1.0)))
+    else:
+        bond_penalty = 0.0
+
+    # Framing.
+    lower = (xy - radii[:, None]).min(axis=0)
+    upper = (xy + radii[:, None]).max(axis=0)
+    spans = np.maximum(upper - lower, 1e-9)
+    aspect_ratio = float(max(spans) / min(spans))
+    aspect_penalty = float(np.clip((aspect_ratio - 2.2) / 2.0, 0.0, 1.0))
+
+    total = 1.0 - (
+        W_OCCLUSION * hidden + W_BOND * bond_penalty + W_ASPECT * aspect_penalty
+    )
+    return {
+        "score": total,
+        "hidden": hidden,
+        "bond_penalty": bond_penalty,
+        "aspect_penalty": aspect_penalty,
+    }
+
+
+def _perturbations(
+    direction: np.ndarray, sigma: float, n: int, rng: np.random.Generator
+) -> list[np.ndarray]:
+    basis = view_basis(direction)
+    tangent_1, tangent_2 = basis[0], basis[1]
+    out = []
+    for _ in range(n):
+        candidate = direction + sigma * (
+            rng.normal() * tangent_1 + rng.normal() * tangent_2
+        )
+        out.append(candidate / np.linalg.norm(candidate))
+    return out
+
+
+def pick_view(
+    scene: Scene,
+    *,
+    n_surface: int = 240,
+    refine_rounds: int = 2,
+    samples_per_round: int = 64,
+    seed: int = 0,
+) -> View:
+    """Search for the best viewpoint.
+
+    Global Fibonacci candidates (plus high-symmetry directions, used as a
+    tie-break) followed by cone-shaped local refinement.
+    """
+    rng = np.random.default_rng(seed)
+    candidates = candidate_views(scene, n_surface=n_surface)
+    scores = [score(scene, view)["score"] for view in candidates]
+
+    best_index = int(np.argmax(scores))
+    best_score = scores[best_index]
+
+    specials = special_directions(scene)
+    if specials:
+        top = [i for i, value in enumerate(scores) if value >= best_score - 0.01]
+        alignment = [
+            max(abs(float(candidates[i].direction @ s)) for s in specials)
+            for i in top
+        ]
+        best_index = top[int(np.argmax(alignment))]
+        best_score = scores[best_index]
+    best = candidates[best_index]
+
+    for round_index in range(refine_rounds):
+        sigma = np.radians(20.0 / (3.0**round_index))
+        for direction in _perturbations(
+            best.direction, sigma, samples_per_round, rng
+        ):
+            candidate = View(direction)
+            value = score(scene, candidate)["score"]
+            if value > best_score + 1e-9:
+                best, best_score = candidate, value
+    return best

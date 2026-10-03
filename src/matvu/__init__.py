@@ -1,0 +1,36 @@
+"""MatVu: automatic viewpoint optimization and visualization.
+
+MatVu analyses a materials structure, finds a clear viewing direction
+automatically and renders a publication-ready ball-and-stick figure::
+
+    from matvu import render
+
+    render("POSCAR", view="auto")
+"""
+
+__version__ = "0.1.0.dev0"
+
+from .backends import available_backends, register_backend
+from .io import available_formats, load_structure, register_reader
+from .render import auto_view, render, resolve_view
+from .structure import Structure
+from .style import Style
+from .viewpoint import View, pick_view
+from .viewpoint import score as score_view
+
+__all__ = [
+    "__version__",
+    "Structure",
+    "Style",
+    "View",
+    "auto_view",
+    "available_backends",
+    "available_formats",
+    "load_structure",
+    "pick_view",
+    "register_backend",
+    "register_reader",
+    "render",
+    "resolve_view",
+    "score_view",
+]

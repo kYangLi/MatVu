@@ -32,8 +32,9 @@ Early development, but already useful:
   render as a clear lattice of distinct spheres (`--metal-bonds` re-enables
   the sticks)
 - Automatic viewpoint selection uses a maximin projected-dispersion criterion
-  for crystals (atoms spread out as evenly as possible), a ~30 degree tilt for
-  layered materials and face-on views for molecules
+  for crystals (atoms spread out evenly; axis-aligned top-down views are
+  avoided), a ~30 degree tilt for layered materials and face-on views for
+  molecules
 - Unit cell frame drawn for 3D crystals only; molecular vacuum boxes and 2D
   slab cells are detected automatically and skipped (`--no-cell` hides it)
 - Mild perspective by default (`--perspective 0` for orthographic);

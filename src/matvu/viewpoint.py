@@ -12,7 +12,7 @@ import numpy as np
 
 from . import elements
 from .geometry import principal_axes, view_basis
-from .scene import Scene, project
+from .scene import Scene, project, slab_normal
 
 # Penalty weights (must sum to 1).
 W_OCCLUSION = 0.60
@@ -98,34 +98,7 @@ def candidate_views(scene: Scene, *, n_surface: int = 240) -> list[View]:
     return [View(d) for d in unique]
 
 
-SLAB_FLATNESS = 0.45
 SLAB_TILT_DEG = 32.0
-
-
-def slab_normal(scene: Scene, *, flatness: float = SLAB_FLATNESS) -> np.ndarray | None:
-    """Normal of a quasi-2D slab (layered material), or ``None``.
-
-    Molecular vacuum boxes (atoms occupying less than half of every lattice
-    direction) are excluded, so flat molecules keep their face-on view.
-    """
-    if scene.n_atoms < 3:
-        return None
-    if scene.cell_origin is None or scene.lattice is None:
-        return None
-    if abs(np.linalg.det(scene.lattice)) < 1e-9:
-        return None
-    fractional = (scene.positions - scene.cell_origin) @ np.linalg.inv(scene.lattice)
-    if float(np.ptp(fractional, axis=0).max()) < 0.5:
-        return None
-    weights = np.array([elements.atomic_mass(s) for s in scene.symbols])
-    values, axes = principal_axes(scene.positions, weights)
-    if values[0] <= 1e-12:
-        return None
-    thickness = float(np.sqrt(max(values[2], 0.0)))
-    width = float(np.sqrt(values[0]))
-    if width <= 1e-12 or thickness > flatness * width:
-        return None
-    return axes[:, 2].astype(float)
 
 
 def _circle_intersection_area(distance, radius_a, radius_b) -> np.ndarray:

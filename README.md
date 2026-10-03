@@ -30,8 +30,8 @@ Early development, but already useful:
   angles and scores — the tool used to calibrate the scoring model
 - Sensible defaults for metals: metal-metal bonds are skipped and bulk metals
   render as close-packed spheres (`--metal-bonds` re-enables the sticks)
-- Unit cell frame drawn automatically for periodic crystals (molecular vacuum
-  boxes are detected and skipped; `--no-cell` hides the frame)
+- Unit cell frame drawn for 3D crystals only; molecular vacuum boxes and 2D
+  slab cells are detected automatically and skipped (`--no-cell` hides it)
 - Mild perspective by default (`--perspective 0` for orthographic);
   layered 2D materials are automatically shown at a ~30 degree tilt while
   flat molecules keep their face-on view

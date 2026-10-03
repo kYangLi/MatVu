@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from . import elements
-from .geometry import find_bonds
+from .geometry import find_bonds, principal_axes
 from .structure import Structure, formula_from_symbols
 from .style import Style
 
@@ -44,6 +44,35 @@ class Scene:
         return formula_from_symbols(self.symbols)
 
 
+SLAB_FLATNESS = 0.45
+
+
+def slab_normal(scene: Scene, *, flatness: float = SLAB_FLATNESS) -> np.ndarray | None:
+    """Normal of a quasi-2D slab (layered material), or ``None``.
+
+    Molecular vacuum boxes (atoms occupying less than half of every lattice
+    direction) are excluded, so flat molecules are not treated as slabs.
+    """
+    if scene.n_atoms < 3:
+        return None
+    if scene.cell_origin is None or scene.lattice is None:
+        return None
+    if abs(np.linalg.det(scene.lattice)) < 1e-9:
+        return None
+    fractional = (scene.positions - scene.cell_origin) @ np.linalg.inv(scene.lattice)
+    if float(np.ptp(fractional, axis=0).max()) < 0.5:
+        return None
+    weights = np.array([elements.atomic_mass(s) for s in scene.symbols])
+    values, axes = principal_axes(scene.positions, weights)
+    if values[0] <= 1e-12:
+        return None
+    thickness = float(np.sqrt(max(values[2], 0.0)))
+    width = float(np.sqrt(values[0]))
+    if width <= 1e-12 or thickness > flatness * width:
+        return None
+    return axes[:, 2].astype(float)
+
+
 # Index pairs of the 12 edges of a cube (corner bit order: i*4 + j*2 + k).
 CELL_EDGE_INDICES: list[tuple[int, int]] = [
     (corner, corner | bit)
@@ -56,9 +85,9 @@ CELL_EDGE_INDICES: list[tuple[int, int]] = [
 def cell_corners(scene: Scene) -> np.ndarray | None:
     """Eight corners of the displayed cell in scene coordinates, or ``None``.
 
-    Returns ``None`` for non-periodic, zero-volume *and molecular* cells:
-    when the atoms occupy less than half of every lattice direction the cell
-    is treated as a vacuum box around a molecule and no frame is drawn.
+    Returns ``None`` for non-periodic, zero-volume, *molecular* and *slab*
+    cells: molecules (atoms occupying less than half of every lattice
+    direction) and 2D layered materials do not get a frame.
     """
     if scene.cell_origin is None or scene.lattice is None:
         return None
@@ -66,6 +95,8 @@ def cell_corners(scene: Scene) -> np.ndarray | None:
         return None
     if abs(np.linalg.det(scene.lattice)) < 1e-9:
         return None
+    if slab_normal(scene) is not None:
+        return None  # 2D materials: no box edges
     if scene.n_atoms == 0:
         return None
     fractional = (scene.positions - scene.cell_origin) @ np.linalg.inv(scene.lattice)

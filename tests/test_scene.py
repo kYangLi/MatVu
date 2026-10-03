@@ -20,6 +20,11 @@ def test_molecular_cell_has_no_frame():
     assert cell_corners(scene) is None
 
 
+def test_slab_cells_have_no_frame():
+    graphene = load_structure(DATA / "graphene.POSCAR").supercell((3, 3, 1))
+    assert cell_corners(build_scene(graphene)) is None
+
+
 def test_metal_metal_bonds_are_skipped_by_default():
     scene = build_scene(load_structure(DATA / "Cu.POSCAR"))
     assert scene.n_bonds == 0

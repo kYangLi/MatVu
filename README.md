@@ -37,7 +37,8 @@ Early local development — **not released, not on PyPI, the API may change.**
 
 Roadmap: interactive web backend, candidate-view gallery, perspective camera,
 polyhedra and space-filling styles, CIF/XYZ readers, symmetry-aware viewpoints.
-See `docs/design.md` for the architecture and the viewpoint scoring model.
+See `docs/design.md` for the architecture and the viewpoint scoring model, and
+`docs/roadmap.md` for the development plan and handover notes.
 
 ## Install (development)
 

@@ -52,7 +52,8 @@
 
 | 后端 | 状态 | 输出 | 备注 |
 | --- | --- | --- | --- |
-| matplotlib | 可用 | PNG/PDF/SVG | 2D 投影 + 深度排序 + 球面渐变 sprite |
+| tracer | 可用（默认） | PNG（可嵌入 PDF/SVG） | 纯 numpy 解析光线投射 + z-buffer：球/柱精确遮挡，默认 2× 超采样抗锯齿 |
+| matplotlib | 可用（快速预览） | PNG/PDF/SVG | 2D 投影 + 深度排序 + 球面渐变 sprite；键端按投影球面裁剪 |
 | web | 计划 | 交互式 HTML | 支持旋转/缩放，初始相机取自动视角 |
 | pyvista | 未来可选 | 图片/动画 | 真实光照，依赖重，作为额外后端 |
 

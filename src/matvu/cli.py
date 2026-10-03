@@ -36,7 +36,12 @@ def build_parser() -> argparse.ArgumentParser:
         default="auto",
         help="auto | a | b | c | [h,k,l] | explicit 'x y z' direction",
     )
-    render_parser.add_argument("--backend", default="matplotlib", choices=available_backends())
+    render_parser.add_argument(
+        "--backend",
+        default="tracer",
+        choices=available_backends(),
+        help="tracer (default, exact occlusion) | matplotlib (fast preview)",
+    )
     render_parser.add_argument(
         "--supercell",
         nargs=3,
@@ -51,6 +56,12 @@ def build_parser() -> argparse.ArgumentParser:
     render_parser.add_argument("--dpi", type=int, default=None)
     render_parser.add_argument("--transparent", action="store_true")
     render_parser.add_argument("--no-bonds", action="store_true")
+    render_parser.add_argument(
+        "--supersample",
+        type=int,
+        default=None,
+        help="anti-aliasing factor for the tracer backend (default 2)",
+    )
     render_parser.add_argument("--print-view", action="store_true", help="print the resolved view")
     render_parser.add_argument("--seed", type=int, default=0, help="auto view search seed")
 
@@ -119,6 +130,8 @@ def _cmd_render(args) -> int:
         style.transparent = True
     if args.no_bonds:
         style.draw_bonds = False
+    if args.supersample is not None:
+        style.supersample = args.supersample
 
     structure = load_structure(args.structure)
     if args.supercell is not None:

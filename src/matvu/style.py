@@ -28,6 +28,7 @@ class Style:
     diffuse: float = 0.58
     specular: float = 0.45
     highlight_shininess: float = 24.0
+    supersample: int = 2  # anti-aliasing factor for the tracer backend
 
     # canvas
     background: str = "white"

@@ -29,7 +29,10 @@ Early development, but already useful:
 - `matvu candidates`: contact sheet of the top-ranked viewpoints, annotated with
   angles and scores — the tool used to calibrate the scoring model
 - POSCAR reader with a small plugin interface for future formats (CIF, XYZ, ...)
-- Ball-and-stick renderer on a lightweight matplotlib backend (PNG / PDF / SVG)
+- Ball-and-stick rendering with two backends:
+  - `tracer` (default): an analytic ray-casting renderer in pure numpy with a
+    z-buffer — exact sphere/stick occlusion, 2x supersampling, no OpenGL/VTK
+  - `matplotlib`: fast preview backend (PNG / PDF / SVG)
 - Core architecture prepared for multiple backends (interactive web view planned)
 - Periodic crystals, 2D materials and finite molecules through one `Structure` model
 
@@ -57,6 +60,7 @@ pytest
 ```bash
 matvu render POSCAR --view auto -o figure.png
 matvu render POSCAR --view a --width 4 --dpi 600 -o figure.pdf
+matvu render POSCAR --backend matplotlib -o preview.png   # fast preview
 matvu candidates POSCAR -n 12 -o candidates.png
 matvu info POSCAR
 ```

@@ -14,7 +14,7 @@ Third-party backends plug in with::
 from __future__ import annotations
 
 from .base import Backend
-from . import mpl
+from . import mpl, tracer
 
 _BACKENDS: dict[str, type[Backend]] = {}
 
@@ -43,3 +43,4 @@ def available_backends() -> list[str]:
 
 
 register_backend(mpl.MatplotlibBackend)
+register_backend(tracer.TracerBackend)

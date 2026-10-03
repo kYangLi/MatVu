@@ -18,7 +18,7 @@ def render(
     output=None,
     *,
     view="auto",
-    backend: str = "matplotlib",
+    backend: str = "tracer",
     style: Style | None = None,
     supercell=None,
     seed: int = 0,
@@ -34,7 +34,8 @@ def render(
         ``"auto"`` (default), ``"a"``/``"b"``/``"c"``, ``"[h,k,l]"``, an
         explicit ``(x, y, z)`` direction or a :class:`~matvu.viewpoint.View`.
     backend:
-        Registered backend name, ``"matplotlib"`` by default.
+        Registered backend name. ``"tracer"`` (default) casts rays analytically
+        for exact sphere/stick occlusion; ``"matplotlib"`` is a fast preview.
     supercell:
         Optional ``(nx, ny, nz)`` repetition applied before rendering.
     """

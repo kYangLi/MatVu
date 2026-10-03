@@ -164,7 +164,19 @@ class MatplotlibBackend(Backend):
 
 def _draw_bond(axes, scene, xy, index, points_per_angstrom, zorder, style) -> None:
     a, b = scene.bonds[index]
-    start, end = xy[a], xy[b]
+    start = xy[a].astype(float)
+    end = xy[b].astype(float)
+    direction_2d = end - start
+    length = float(np.linalg.norm(direction_2d))
+    if length < 1e-9:
+        return
+    unit = direction_2d / length
+    # Clip the stick at the projected sphere surfaces. For an orthographic
+    # projection this is exact, and it stops sticks lying flat on the balls.
+    start = start + unit * float(scene.radii[a])
+    end = end - unit * float(scene.radii[b])
+    if float(np.linalg.norm(end - start)) <= 1e-6:
+        return
     middle = 0.5 * (start + end)
     line_width = max(0.4, 2.0 * style.bond_radius * points_per_angstrom)
     outline = np.clip(

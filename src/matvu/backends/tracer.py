@@ -67,13 +67,16 @@ def _shade(
 ) -> np.ndarray:
     """Lambert + Blinn-Phong shading for a block of surface normals."""
     lambert = np.clip(normals @ key_light, 0.0, 1.0)
-    fill = np.clip(normals @ fill_light, 0.0, 1.0) * 0.18
+    fill = np.clip(normals @ fill_light, 0.0, 1.0) * 0.12
     half = key_light + view_direction
     half = half / np.linalg.norm(half)
     specular = np.clip(normals @ half, 0.0, 1.0) ** style.highlight_shininess
     intensity = style.ambient + style.diffuse * lambert + fill
+    # Darken towards the silhouette so spheres read against the background.
+    edge = 0.75 + 0.25 * np.clip(normals @ view_direction, 0.0, 1.0)
     shaded = (
-        intensity[..., None] * base + style.specular * specular[..., None]
+        intensity[..., None] * base * edge[..., None]
+        + style.specular * specular[..., None]
     )
     return np.clip(shaded, 0.0, 1.0)
 

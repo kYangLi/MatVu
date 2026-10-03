@@ -16,18 +16,20 @@ class Style:
     # atoms and bonds
     atom_scale: float = 0.40
     min_atom_radius: float = 0.18
+    unbonded_atom_scale: float = 0.90  # used when the structure ends up with no bonds
     bond_radius: float = 0.09
     bond_tolerance: float = 1.20
+    metal_metal_bonds: bool = False
     draw_bonds: bool = True
 
     # shading
     shading: bool = True
     sphere_res: int = 256
     light: tuple[float, float, float] = (-0.45, 0.55, 0.70)
-    ambient: float = 0.42
-    diffuse: float = 0.58
-    specular: float = 0.45
-    highlight_shininess: float = 24.0
+    ambient: float = 0.30
+    diffuse: float = 0.62
+    specular: float = 0.30
+    highlight_shininess: float = 32.0
     supersample: int = 2  # anti-aliasing factor for the tracer backend
 
     # canvas

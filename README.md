@@ -28,6 +28,8 @@ Early development, but already useful:
   (Fibonacci sampling + principal axes + lattice directions, then local refinement)
 - `matvu candidates`: contact sheet of the top-ranked viewpoints, annotated with
   angles and scores — the tool used to calibrate the scoring model
+- Sensible defaults for metals: metal-metal bonds are skipped and bulk metals
+  render as close-packed spheres (`--metal-bonds` re-enables the sticks)
 - POSCAR reader with a small plugin interface for future formats (CIF, XYZ, ...)
 - Ball-and-stick rendering with two backends:
   - `tracer` (default): an analytic ray-casting renderer in pure numpy with a

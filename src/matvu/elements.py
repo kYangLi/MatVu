@@ -91,6 +91,22 @@ _ELEMENTS: dict[str, tuple[float, float, float, str]] = {
 # Fallback for symbols that are not in the table (e.g. dummy atoms).
 _UNKNOWN = ("X", 1.40, 1.70, "#FF1493")
 
+# Metals (metalloids such as B, Si, Ge, As, Sb, Te are deliberately excluded).
+_METALS = frozenset(
+    {
+        "Li", "Be", "Na", "Mg", "Al", "K", "Ca", "Sc", "Ti", "V", "Cr", "Mn",
+        "Fe", "Co", "Ni", "Cu", "Zn", "Ga", "Rb", "Sr", "Y", "Zr", "Nb", "Mo",
+        "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In", "Sn", "Cs", "Ba", "La", "Ce",
+        "Hf", "Ta", "W", "Re", "Os", "Ir", "Pt", "Au", "Hg", "Tl", "Pb", "Bi",
+        "Th", "U",
+    }
+)
+
+
+def is_metal(symbol: str) -> bool:
+    """Whether the element is a metal (metalloids are excluded)."""
+    return normalise_symbol(symbol) in _METALS
+
 
 def normalise_symbol(symbol: str) -> str:
     """Return the conventional capitalisation of an element symbol."""

@@ -57,6 +57,11 @@ def build_parser() -> argparse.ArgumentParser:
     render_parser.add_argument("--transparent", action="store_true")
     render_parser.add_argument("--no-bonds", action="store_true")
     render_parser.add_argument(
+        "--metal-bonds",
+        action="store_true",
+        help="draw metal-metal bonds (default: off)",
+    )
+    render_parser.add_argument(
         "--supersample",
         type=int,
         default=None,
@@ -130,6 +135,8 @@ def _cmd_render(args) -> int:
         style.transparent = True
     if args.no_bonds:
         style.draw_bonds = False
+    if args.metal_bonds:
+        style.metal_metal_bonds = True
     if args.supersample is not None:
         style.supersample = args.supersample
 

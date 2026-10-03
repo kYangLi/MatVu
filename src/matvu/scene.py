@@ -53,20 +53,36 @@ class Projection:
 
 
 def build_scene(structure: Structure, style: Style | None = None) -> Scene:
-    """Turn a :class:`Structure` into a :class:`Scene` using a style."""
+    """Turn a :class:`Structure` into a :class:`Scene` using a style.
+
+    Metal-metal pairs are not bonded by default (``Style.metal_metal_bonds``
+    re-enables them). When a structure ends up with no bonds at all, atoms
+    are drawn at ``Style.unbonded_atom_scale`` (close-packing look, useful
+    for bulk metals).
+    """
     style = style or Style()
     positions = structure.cart_coords - structure.center
+    symbols = list(structure.symbols)
+    bonds = find_bonds(structure, tolerance=style.bond_tolerance)
+    if not style.metal_metal_bonds:
+        bonds = [
+            (i, j)
+            for i, j in bonds
+            if not (elements.is_metal(symbols[i]) and elements.is_metal(symbols[j]))
+        ]
+    if bonds or structure.n_atoms <= 1:
+        scale = style.atom_scale
+    else:
+        scale = style.unbonded_atom_scale
     radii = (
-        np.array([elements.covalent_radius(s) for s in structure.symbols])
-        * style.atom_scale
+        np.array([elements.covalent_radius(s) for s in symbols]) * scale
     )
     radii = np.maximum(radii, style.min_atom_radius)
-    colours = np.array([elements.colour_rgb(s) for s in structure.symbols])
-    bonds = find_bonds(structure, tolerance=style.bond_tolerance)
+    colours = np.array([elements.colour_rgb(s) for s in symbols])
     bond_array = np.asarray(bonds, dtype=int).reshape(-1, 2)
     return Scene(
         positions=positions,
-        symbols=list(structure.symbols),
+        symbols=symbols,
         radii=radii,
         colours=colours,
         bonds=bond_array,

@@ -12,7 +12,6 @@ Usage::
 from __future__ import annotations
 
 import argparse
-from dataclasses import replace
 from pathlib import Path
 
 import matplotlib
@@ -29,8 +28,8 @@ STRUCTURES = ROOT / "examples" / "structures"
 OUTPUT = ROOT / "examples" / "out"
 TILES = OUTPUT / "showcase"
 
-# bond_tolerance overrides are per-case: for MoS2 the default 1.2 would also
-# draw Mo-Mo "bonds" (in-plane metal distances), while 1.0 keeps only Mo-S.
+# Metal-metal bonds are skipped by default (see Style.metal_metal_bonds), so
+# Cu renders as close-packed spheres and MoS2 keeps only Mo-S sticks.
 CASES: list[dict] = [
     {"name": "si", "file": "Si.POSCAR", "supercell": (2, 2, 2), "title": "Si — diamond"},
     {"name": "nacl", "file": "NaCl.POSCAR", "supercell": (2, 2, 2), "title": "NaCl — rocksalt"},
@@ -41,7 +40,6 @@ CASES: list[dict] = [
         "file": "MoS2.POSCAR",
         "supercell": (3, 3, 1),
         "title": "MoS2 — monolayer",
-        "bond_tolerance": 1.0,
     },
     {"name": "graphene", "file": "graphene.POSCAR", "supercell": (3, 3, 1), "title": "graphene — 2D"},
     {"name": "benzene", "file": "benzene.POSCAR", "supercell": None, "title": "C6H6 — molecule"},
@@ -61,16 +59,13 @@ def main() -> int:
 
     rendered = []
     for case in CASES:
-        style = base_style
-        if case.get("bond_tolerance") is not None:
-            style = replace(base_style, bond_tolerance=case["bond_tolerance"])
         structure = load_structure(STRUCTURES / case["file"])
         if case["supercell"] is not None:
             structure = structure.supercell(case["supercell"])
-        view = auto_view(structure, style=style)
+        view = auto_view(structure, style=base_style)
         output = TILES / f"{case['name']}.png"
-        render(structure, output=output, view=view, style=style)
-        scene = build_scene(structure, style)
+        render(structure, output=output, view=view, style=base_style)
+        scene = build_scene(structure, base_style)
         azimuth, elevation = view.angles_deg()
         rendered.append(
             (case["title"], scene.formula, output, azimuth, elevation)

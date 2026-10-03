@@ -22,6 +22,11 @@ class Style:
     metal_metal_bonds: bool = False
     draw_bonds: bool = True
 
+    # cell frame
+    draw_cell: bool = True
+    cell_linewidth: float = 1.0  # in points, at the final image size
+    cell_colour: str = "#4d4d4d"
+
     # shading
     shading: bool = True
     sphere_res: int = 256

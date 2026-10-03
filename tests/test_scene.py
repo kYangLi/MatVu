@@ -1,10 +1,23 @@
 from pathlib import Path
 
 from matvu import load_structure
-from matvu.scene import build_scene
+from matvu.scene import CELL_EDGE_INDICES, build_scene, cell_corners
 from matvu.style import Style
 
 DATA = Path(__file__).resolve().parents[1] / "examples" / "structures"
+
+
+def test_scene_carries_the_cell_frame():
+    scene = build_scene(load_structure(DATA / "Si.POSCAR"))
+    corners = cell_corners(scene)
+    assert corners is not None
+    assert corners.shape == (8, 3)
+    assert len(CELL_EDGE_INDICES) == 12
+
+
+def test_molecular_cell_has_no_frame():
+    scene = build_scene(load_structure(DATA / "water.POSCAR"))
+    assert cell_corners(scene) is None
 
 
 def test_metal_metal_bonds_are_skipped_by_default():

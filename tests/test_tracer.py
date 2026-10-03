@@ -2,9 +2,9 @@ from pathlib import Path
 
 import numpy as np
 
-from matvu import View, render
+from matvu import Structure, View, render
 from matvu.backends.tracer import trace_image
-from matvu.scene import Scene
+from matvu.scene import Scene, build_scene
 from matvu.style import Style
 
 DATA = Path(__file__).resolve().parents[1] / "examples" / "structures"
@@ -86,6 +86,21 @@ def test_tracer_transparent_background():
     corner = image[2, 2]
     assert corner[3] == 0.0
     assert image.shape[2] == 4
+
+
+def test_cell_frame_is_drawn():
+    lattice = np.eye(3) * 4.0
+    positions = np.array([[0.0, 0.0, 0.0], [2.5, 2.5, 2.5]])
+    structure = Structure(lattice, positions, ["H", "H"], pbc=(True, True, True))
+    style_on = Style(width_in=1.5, dpi=50, supersample=1, atom_scale=0.25)
+    style_off = Style(
+        width_in=1.5, dpi=50, supersample=1, atom_scale=0.25, draw_cell=False
+    )
+    view = View([0.0, 1.0, 0.0])
+    with_frame = trace_image(build_scene(structure, style_on), view, style_on)
+    without_frame = trace_image(build_scene(structure, style_off), view, style_off)
+    assert with_frame.shape == without_frame.shape
+    assert not np.allclose(with_frame, without_frame)
 
 
 def test_render_with_tracer_backend(tmp_path):

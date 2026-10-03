@@ -15,7 +15,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ..scene import Scene
+from ..scene import CELL_EDGE_INDICES, Scene, cell_corners
 from ..style import Style
 from ..viewpoint import View
 from .base import Backend
@@ -112,6 +112,14 @@ def trace_image(
     planar_xy = planar[:, :2]
     lower = (planar_xy - radii[:, None]).min(axis=0) - style.bond_radius
     upper = (planar_xy + radii[:, None]).max(axis=0) + style.bond_radius
+
+    # The cell frame is part of the picture when it is drawn.
+    corners = cell_corners(scene) if style.draw_cell else None
+    if corners is not None:
+        corner_xy = (corners.astype(np.float32) @ basis.T)[:, :2]
+        lower = np.minimum(lower, corner_xy.min(axis=0))
+        upper = np.maximum(upper, corner_xy.max(axis=0))
+
     pad = np.maximum(upper - lower, 1e-6) * style.margin
     lower = lower - pad
     upper = upper + pad
@@ -143,12 +151,15 @@ def trace_image(
         row1 = int(np.ceil((y1 - centre_y + radius) / (y1 - y0) * height))
         return max(row0, 0), min(row1, height), max(col0, 0), min(col1, width)
 
-    def write(row0, row1, col0, col1, hit, valid, base, normals):
+    def write(row0, row1, col0, col1, hit, valid, base, normals, flat=False):
         block = depth[row0:row1, col0:col1]
         update = valid & (hit > block)
         if not update.any():
             return
-        shaded = _shade(normals, base, style, key_light, fill_light, direction)
+        if flat:
+            shaded = np.broadcast_to(base, (row1 - row0, col1 - col0, 3))
+        else:
+            shaded = _shade(normals, base, style, key_light, fill_light, direction)
         depth[row0:row1, col0:col1] = np.where(update, hit, block)
         block_colour = colour[row0:row1, col0:col1]
         colour[row0:row1, col0:col1] = np.where(
@@ -177,7 +188,7 @@ def trace_image(
         normals = (points + hit[..., None] * direction - centre) / radius
         write(row0, row1, col0, col1, hit, valid, colours[index], normals)
 
-    def put_cylinder_half(start, end, base):
+    def put_cylinder(start, end, radius, base, flat=False):
         axis = end - start
         length = float(np.linalg.norm(axis))
         if length < 1e-6:
@@ -189,7 +200,7 @@ def trace_image(
         centre_y = 0.5 * float(plane_a[1] + plane_b[1])
         half_extent = 0.5 * float(
             np.hypot(plane_b[0] - plane_a[0], plane_b[1] - plane_a[1])
-        ) + style.bond_radius
+        ) + radius
         row0, row1, col0, col1 = pixel_window(centre_x, centre_y, half_extent)
         if row0 >= row1 or col0 >= col1:
             return
@@ -205,7 +216,7 @@ def trace_image(
         if vv < 1e-10:
             return  # bond axis (anti)parallel to the view; atoms cover it
         b_term = perpendicular @ v
-        c_term = np.einsum("...i,...i", perpendicular, perpendicular) - style.bond_radius**2
+        c_term = np.einsum("...i,...i", perpendicular, perpendicular) - radius**2
         disc = b_term * b_term - vv * c_term
         sqrt_disc = np.sqrt(np.maximum(disc, 0.0))
         s_one = (-b_term + sqrt_disc) / vv
@@ -219,15 +230,29 @@ def trace_image(
         )
         valid = np.isfinite(hit)
         hit_safe = np.where(valid, hit, 0.0)
-        normals = (perpendicular + hit_safe[..., None] * v) / style.bond_radius
-        write(row0, row1, col0, col1, hit, valid, base, normals)
+        normals = (perpendicular + hit_safe[..., None] * v) / radius
+        write(row0, row1, col0, col1, hit, valid, base, normals, flat=flat)
 
     for i, j in scene.bonds:
         a = positions[i]
         b = positions[j]
         middle = 0.5 * (a + b)
-        put_cylinder_half(a, middle, colours[i])
-        put_cylinder_half(middle, b, colours[j])
+        put_cylinder(a, middle, style.bond_radius, colours[i])
+        put_cylinder(middle, b, style.bond_radius, colours[j])
+
+    # Unit cell frame, drawn as thin unshaded sticks.
+    if corners is not None:
+        units_per_point = (x1 - x0) / (style.width_in * 72.0)
+        frame_radius = max(style.cell_linewidth * 0.5 * units_per_point, 1e-4)
+        frame_colour = _rgb(style.cell_colour)
+        for a, b in CELL_EDGE_INDICES:
+            put_cylinder(
+                corners[a].astype(np.float32),
+                corners[b].astype(np.float32),
+                frame_radius,
+                frame_colour,
+                flat=True,
+            )
 
     # Supersampled anti-aliasing.
     coverage = (depth > -np.inf).astype(np.float32)

@@ -28,6 +28,8 @@ class Scene:
     lattice: np.ndarray | None = None
     pbc: tuple[bool, bool, bool] = (True, True, True)
 
+    cell_origin: np.ndarray | None = None
+
     @property
     def n_atoms(self) -> int:
         return int(self.positions.shape[0])
@@ -40,6 +42,43 @@ class Scene:
     def formula(self) -> str:
         """Compact formula of the scene contents."""
         return formula_from_symbols(self.symbols)
+
+
+# Index pairs of the 12 edges of a cube (corner bit order: i*4 + j*2 + k).
+CELL_EDGE_INDICES: list[tuple[int, int]] = [
+    (corner, corner | bit)
+    for corner in range(8)
+    for bit in (4, 2, 1)
+    if not corner & bit
+]
+
+
+def cell_corners(scene: Scene) -> np.ndarray | None:
+    """Eight corners of the displayed cell in scene coordinates, or ``None``.
+
+    Returns ``None`` for non-periodic, zero-volume *and molecular* cells:
+    when the atoms occupy less than half of every lattice direction the cell
+    is treated as a vacuum box around a molecule and no frame is drawn.
+    """
+    if scene.cell_origin is None or scene.lattice is None:
+        return None
+    if abs(np.linalg.det(scene.lattice)) < 1e-9:
+        return None
+    if scene.n_atoms == 0:
+        return None
+    fractional = (scene.positions - scene.cell_origin) @ np.linalg.inv(scene.lattice)
+    if float(np.ptp(fractional, axis=0).max()) < 0.5:
+        return None
+    origin = np.asarray(scene.cell_origin, dtype=float)
+    lattice = np.asarray(scene.lattice, dtype=float)
+    return np.array(
+        [
+            origin + i * lattice[0] + j * lattice[1] + k * lattice[2]
+            for i in (0.0, 1.0)
+            for j in (0.0, 1.0)
+            for k in (0.0, 1.0)
+        ]
+    )
 
 
 @dataclass
@@ -88,6 +127,7 @@ def build_scene(structure: Structure, style: Style | None = None) -> Scene:
         bonds=bond_array,
         lattice=structure.lattice,
         pbc=structure.pbc,
+        cell_origin=-structure.center,
     )
 
 

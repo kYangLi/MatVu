@@ -62,6 +62,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="draw metal-metal bonds (default: off)",
     )
     render_parser.add_argument(
+        "--no-cell",
+        action="store_true",
+        help="hide the unit cell frame",
+    )
+    render_parser.add_argument(
         "--supersample",
         type=int,
         default=None,
@@ -137,6 +142,8 @@ def _cmd_render(args) -> int:
         style.draw_bonds = False
     if args.metal_bonds:
         style.metal_metal_bonds = True
+    if args.no_cell:
+        style.draw_cell = False
     if args.supersample is not None:
         style.supersample = args.supersample
 

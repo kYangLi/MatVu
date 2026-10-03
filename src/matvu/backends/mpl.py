@@ -12,7 +12,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ..scene import Scene, project
+from ..scene import CELL_EDGE_INDICES, Scene, cell_corners, project
 from ..style import Style
 from ..viewpoint import View
 from .base import Backend
@@ -94,6 +94,22 @@ class MatplotlibBackend(Backend):
 
         lower = (xy - radii[:, None]).min(axis=0)
         upper = (xy + radii[:, None]).max(axis=0)
+
+        corners = cell_corners(scene) if style.draw_cell else None
+        edge_data: list[tuple[np.ndarray, np.ndarray, float]] = []
+        if corners is not None:
+            planar_corners = corners @ projection.basis.T
+            lower = np.minimum(lower, planar_corners[:, :2].min(axis=0))
+            upper = np.maximum(upper, planar_corners[:, :2].max(axis=0))
+            for a, b in CELL_EDGE_INDICES:
+                edge_data.append(
+                    (
+                        planar_corners[a, :2],
+                        planar_corners[b, :2],
+                        float(planar_corners[a, 2] + planar_corners[b, 2]) * 0.5,
+                    )
+                )
+
         pad = np.maximum(upper - lower, 1e-9) * style.margin + 1e-9
         x0, x1 = float(lower[0] - pad[0]), float(upper[0] + pad[0])
         y0, y1 = float(lower[1] - pad[1]), float(upper[1] + pad[1])
@@ -120,6 +136,8 @@ class MatplotlibBackend(Backend):
                 items.append(
                     (float(depth[a] + depth[b]) * 0.5, 0, 1, bond_index)
                 )
+        for edge_index, (_, _, edge_depth) in enumerate(edge_data):
+            items.append((edge_depth, 0, 2, edge_index))
         items.sort(key=lambda item: (item[0], item[1]))
 
         points_per_angstrom = width_in * 72.0 / x_span
@@ -135,7 +153,7 @@ class MatplotlibBackend(Backend):
                     interpolation="bilinear",
                     zorder=rank,
                 )
-            else:
+            elif kind == 1:
                 _draw_bond(
                     axes,
                     scene,
@@ -144,6 +162,16 @@ class MatplotlibBackend(Backend):
                     points_per_angstrom,
                     rank,
                     style,
+                )
+            else:
+                start_2d, end_2d, _ = edge_data[index]
+                axes.plot(
+                    [start_2d[0], end_2d[0]],
+                    [start_2d[1], end_2d[1]],
+                    color=style.cell_colour,
+                    lw=max(0.4, style.cell_linewidth),
+                    solid_capstyle="round",
+                    zorder=rank,
                 )
 
         if output is not None:

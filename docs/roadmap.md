@@ -53,11 +53,13 @@ src/matvu/
 
 - 已实现功能：
   - POSCAR 解析：VASP 4/5、负 scale（目标体积）、Cartesian/Direct、Selective dynamics
-  - 距离键连：默认"显示原子之间"（可画），`use_mic=True` 得无限晶体邻接表
+  - 距离键连：默认"显示原子之间"（可画），`use_mic=True` 得无限晶体邻接表；
+    金属–金属默认不成键，无键结构自动切换密堆积半径
   - 自动视角 v0（算法见 §5）
-  - matplotlib 后端：PNG/PDF/SVG，球面渐变 sprite + 画家算法 + 深描边双色键
-  - CLI：`matvu render` / `matvu info`，支持 `--view auto|a|b|c|[hkl]|"x y z"`、
-    `--supercell NX NY NZ`、`--print-view`、`--width/--dpi/--transparent`
+  - tracer 后端（默认）：纯 numpy 解析光线投射、精确遮挡 + 边缘暗化；
+    晶胞框自动绘制（分子盒/真空盒自动跳过，`--no-cell` 可关）
+  - matplotlib 后端：PNG/PDF/SVG 快速预览（球面 sprite + 深描边双色键）
+  - CLI：`matvu render` / `matvu info` / `matvu candidates`
 - 示例与演示：`examples/structures/`（Si、NaCl、graphene、water 四个算例）；
   `examples/out/` 有 4 张自动视角渲染图（被 gitignore，本地生成）。
 - 已知限制：

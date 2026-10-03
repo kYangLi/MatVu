@@ -155,8 +155,9 @@ def trace_image(
             ],
             dtype=np.float64,
         )
-        lower = (atom_images - atom_image_radii[:, None]).min(axis=0) - style.bond_radius
-        upper = (atom_images + atom_image_radii[:, None]).max(axis=0) + style.bond_radius
+        framing_radii = atom_image_radii * 1.08  # safety for perspective spread
+        lower = (atom_images - framing_radii[:, None]).min(axis=0) - style.bond_radius
+        upper = (atom_images + framing_radii[:, None]).max(axis=0) + style.bond_radius
     else:
         atom_images = np.zeros((0, 2), dtype=np.float32)
         atom_image_radii = np.zeros(0, dtype=np.float64)

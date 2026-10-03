@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 from dataclasses import dataclass
 
 import numpy as np
@@ -29,6 +30,7 @@ class Scene:
     pbc: tuple[bool, bool, bool] = (True, True, True)
 
     cell_origin: np.ndarray | None = None
+    n_core: int | None = None
 
     @property
     def n_atoms(self) -> int:
@@ -40,11 +42,21 @@ class Scene:
 
     @property
     def formula(self) -> str:
-        """Compact formula of the scene contents."""
-        return formula_from_symbols(self.symbols)
+        """Compact formula of the structure (boundary images excluded)."""
+        symbols = self.symbols if self.n_core is None else self.symbols[: self.n_core]
+        return formula_from_symbols(symbols)
 
 
 SLAB_FLATNESS = 0.45
+MOLECULAR_SPAN = 0.5
+_SPAN_TOLERANCE = 1e-6
+
+
+def _spans_like_molecule(fractional: np.ndarray) -> bool:
+    """True when atoms occupy clearly less than the full cell in every axis."""
+    if fractional.size == 0:
+        return False
+    return float(np.ptp(fractional, axis=0).max()) < MOLECULAR_SPAN - _SPAN_TOLERANCE
 
 
 def molecular_box(scene: Scene) -> bool:
@@ -56,7 +68,7 @@ def molecular_box(scene: Scene) -> bool:
     if scene.n_atoms == 0:
         return False
     fractional = (scene.positions - scene.cell_origin) @ np.linalg.inv(scene.lattice)
-    return float(np.ptp(fractional, axis=0).max()) < 0.5
+    return _spans_like_molecule(fractional)
 
 
 def slab_normal(scene: Scene, *, flatness: float = SLAB_FLATNESS) -> np.ndarray | None:
@@ -136,18 +148,64 @@ class Projection:
     basis: np.ndarray
 
 
+def _boundary_images(structure: Structure, margin: float) -> Structure:
+    """Append periodic images lying within ``margin`` outside the cell.
+
+    This decorates the far faces of the displayed cell with atoms that
+    physically belong to the neighbouring cells (mirror copies of the
+    boundary atoms), so the crystal no longer looks cut off on one side.
+    Images that coincide with existing atoms are dropped.
+    """
+    if margin <= 0.0 or structure.n_atoms == 0:
+        return structure
+    if structure.volume < 1e-12 or not any(structure.pbc):
+        return structure
+    fractional = structure.frac_coords
+    if _spans_like_molecule(fractional):
+        return structure  # molecular vacuum box
+    existing = structure.cart_coords
+    kept_blocks = [existing]
+    images: list[np.ndarray] = []
+    symbols: list[str] = []
+    for shift in itertools.product((-1.0, 0.0, 1.0), repeat=3):
+        if shift == (0.0, 0.0, 0.0):
+            continue
+        shifted = fractional + np.asarray(shift)
+        inside = np.all((shifted >= -margin) & (shifted <= 1.0 + margin), axis=1)
+        for index in np.where(inside)[0]:
+            cart = shifted[index] @ structure.lattice
+            if any(
+                float(np.linalg.norm(block - cart, axis=1).min()) < 1e-6
+                for block in kept_blocks
+            ):
+                continue
+            images.append(cart)
+            symbols.append(structure.symbols[index])
+            kept_blocks.append(cart.reshape(1, 3))
+    if not images:
+        return structure
+    new_cart = np.vstack([existing, np.asarray(images)])
+    new_symbols = list(structure.symbols) + symbols
+    return Structure(
+        structure.lattice, new_cart, new_symbols, structure.pbc, dict(structure.info)
+    )
+
+
 def build_scene(structure: Structure, style: Style | None = None) -> Scene:
     """Turn a :class:`Structure` into a :class:`Scene` using a style.
 
-    Metal-metal pairs are not bonded by default (``Style.metal_metal_bonds``
-    re-enables them). When a structure ends up with no bonds at all, atoms
-    are drawn at ``Style.unbonded_atom_scale`` (close-packing look, useful
-    for bulk metals).
+    Periodic boundary atoms are mirrored into a thin margin outside the cell
+    (``Style.boundary_padding``) so the cell looks complete and boundary
+    bonds are drawn. Metal-metal pairs are not bonded by default
+    (``Style.metal_metal_bonds`` re-enables them). When a structure ends up
+    with no bonds at all, atoms are drawn at ``Style.unbonded_atom_scale``
+    (clear lattice spheres, useful for bulk metals).
     """
     style = style or Style()
-    positions = structure.cart_coords - structure.center
-    symbols = list(structure.symbols)
-    bonds = find_bonds(structure, tolerance=style.bond_tolerance)
+    working = _boundary_images(structure, style.boundary_padding)
+    positions = working.cart_coords - working.center
+    symbols = list(working.symbols)
+    bonds = find_bonds(working, tolerance=style.bond_tolerance)
     if not style.metal_metal_bonds:
         bonds = [
             (i, j)
@@ -172,7 +230,8 @@ def build_scene(structure: Structure, style: Style | None = None) -> Scene:
         bonds=bond_array,
         lattice=structure.lattice,
         pbc=structure.pbc,
-        cell_origin=-structure.center,
+        cell_origin=-working.center,
+        n_core=structure.n_atoms,
     )
 
 

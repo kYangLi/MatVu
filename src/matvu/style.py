@@ -21,6 +21,7 @@ class Style:
     bond_tolerance: float = 1.20
     metal_metal_bonds: bool = False
     draw_bonds: bool = True
+    boundary_padding: float = 0.10  # fractional margin of mirrored boundary atoms
 
     # cell frame
     draw_cell: bool = True
@@ -43,4 +44,4 @@ class Style:
     margin: float = 0.06
     width_in: float = 6.0
     dpi: int = 300
-    perspective: float = 0.25  # 0 = orthographic, larger = stronger perspective
+    perspective: float = 0.18  # 0 = orthographic, larger = stronger perspective

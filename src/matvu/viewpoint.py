@@ -104,11 +104,15 @@ SLAB_TILT_DEG = 32.0
 def projected_dispersion(scene: Scene, view: View) -> float:
     """Maximin spread of the projected atoms (larger = more evenly spread).
 
-    The projected coordinates are normalised by their RMS radius, then the
-    smallest pairwise distance is returned: a view with overlapping or
-    clustered atoms scores low, a well-spread view scores high.
+    Only the core atoms of the cell are considered (boundary mirror images
+    are decoration). The projected coordinates are normalised by their RMS
+    radius, then the smallest pairwise distance is returned: a view with
+    overlapping or clustered atoms scores low, a well-spread view scores high.
     """
-    xy = (scene.positions @ view.basis.T)[:, :2]
+    positions = (
+        scene.positions if scene.n_core is None else scene.positions[: scene.n_core]
+    )
+    xy = (positions @ view.basis.T)[:, :2]
     xy = xy - xy.mean(axis=0)
     rms = float(np.sqrt((xy**2).sum(axis=1).mean()))
     if rms < 1e-12:
@@ -261,6 +265,29 @@ def pick_view(
     # - 3D crystals and clusters: maximin projected dispersion, so the atoms
     #   spread out as evenly as possible in the picture.
     normal = slab_normal(scene)
+    lattice_directions: list[np.ndarray] = []
+    if scene.lattice is not None:
+        for vector in scene.lattice:
+            norm = float(np.linalg.norm(vector))
+            if norm > 1e-12:
+                lattice_directions.append(vector / norm)
+    is_molecule = molecular_box(scene)
+
+    def aesthetically_ok(direction: np.ndarray) -> bool:
+        """Keep refined views inside the same aesthetic region as the pick."""
+        if normal is not None:
+            slant = float(
+                np.degrees(
+                    np.arccos(np.clip(abs(float(direction @ normal)), 0.0, 1.0))
+                )
+            )
+            return 12.0 <= slant <= 58.0
+        if is_molecule:
+            return True
+        if lattice_directions:
+            return max(abs(float(direction @ u)) for u in lattice_directions) <= 0.95
+        return True
+
     if normal is not None:
         top = [i for i, value in enumerate(scores) if value >= best_score - 0.02]
         angles = [
@@ -275,7 +302,7 @@ def pick_view(
         if tilted:
             best_index = top[min(tilted, key=lambda k: abs(angles[k] - SLAB_TILT_DEG))]
             best_score = scores[best_index]
-    elif molecular_box(scene):
+    elif is_molecule:
         specials = special_directions(scene)
         if specials:
             top = [i for i, value in enumerate(scores) if value >= best_score - 0.01]
@@ -287,6 +314,19 @@ def pick_view(
             best_score = scores[best_index]
     else:
         top = [i for i, value in enumerate(scores) if value >= best_score - 0.02]
+        # Avoid "weird top-down" views: drop candidates nearly parallel to a
+        # lattice vector when there are off-axis alternatives.
+        if lattice_directions:
+            off_axis = [
+                i
+                for i in top
+                if max(
+                    abs(float(candidates[i].direction @ u)) for u in lattice_directions
+                )
+                <= 0.92
+            ]
+            if off_axis:
+                top = off_axis
         dispersion = [projected_dispersion(scene, candidates[i]) for i in top]
         best_index = top[int(np.argmax(dispersion))]
         best_score = scores[best_index]
@@ -299,6 +339,8 @@ def pick_view(
             best.direction, sigma, samples_per_round, rng
         ):
             candidate = View(direction)
+            if not aesthetically_ok(candidate.direction):
+                continue
             value = score(scene, candidate)["score"]
             if value > best_score + 1e-9:
                 best, best_score = candidate, value

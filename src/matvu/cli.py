@@ -67,6 +67,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="hide the unit cell frame",
     )
     render_parser.add_argument(
+        "--boundary-padding",
+        type=float,
+        default=None,
+        help="fractional margin of mirrored periodic boundary atoms (default 0.10, 0 disables)",
+    )
+    render_parser.add_argument(
         "--perspective",
         type=float,
         default=None,
@@ -152,6 +158,8 @@ def _cmd_render(args) -> int:
         style.draw_cell = False
     if args.perspective is not None:
         style.perspective = args.perspective
+    if args.boundary_padding is not None:
+        style.boundary_padding = args.boundary_padding
     if args.supersample is not None:
         style.supersample = args.supersample
 

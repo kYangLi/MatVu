@@ -31,11 +31,17 @@ Early development, but already useful:
 - Sensible defaults for metals: metal-metal bonds are skipped and bulk metals
   render as a clear lattice of distinct spheres (`--metal-bonds` re-enables
   the sticks)
+- Automatic viewpoint selection uses a maximin projected-dispersion criterion
+  for crystals (atoms spread out as evenly as possible), a ~30 degree tilt for
+  layered materials and face-on views for molecules
 - Unit cell frame drawn for 3D crystals only; molecular vacuum boxes and 2D
   slab cells are detected automatically and skipped (`--no-cell` hides it)
 - Mild perspective by default (`--perspective 0` for orthographic);
   layered 2D materials are automatically shown at a ~30 degree tilt while
   flat molecules keep their face-on view
+- Periodic boundary atoms are mirrored just outside the cell, so crystal
+  cells look complete on both sides and boundary bonds are drawn
+  (`--boundary-padding`, 0 disables)
 - POSCAR reader with a small plugin interface for future formats (CIF, XYZ, ...)
 - Ball-and-stick rendering with two backends:
   - `tracer` (default): an analytic ray-casting renderer in pure numpy with a

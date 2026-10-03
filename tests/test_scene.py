@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from matvu import load_structure
 from matvu.scene import CELL_EDGE_INDICES, build_scene, cell_corners
 from matvu.style import Style
@@ -28,8 +30,8 @@ def test_slab_cells_have_no_frame():
 def test_metal_metal_bonds_are_skipped_by_default():
     scene = build_scene(load_structure(DATA / "Cu.POSCAR"))
     assert scene.n_bonds == 0
-    # With no bonds the atoms switch to the close-packing radius.
-    assert scene.radii[0] > 1.0
+    # distinct lattice spheres, clearly separated (not close-packed)
+    assert scene.radii[0] == pytest.approx(0.60 * 1.32, rel=1e-6)
 
 
 def test_metal_metal_bonds_can_be_enabled():

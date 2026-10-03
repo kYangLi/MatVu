@@ -16,7 +16,7 @@ class Style:
     # atoms and bonds
     atom_scale: float = 0.40
     min_atom_radius: float = 0.18
-    unbonded_atom_scale: float = 0.90  # used when the structure ends up with no bonds
+    unbonded_atom_scale: float = 0.60  # used when the structure ends up with no bonds
     bond_radius: float = 0.09
     bond_tolerance: float = 1.20
     metal_metal_bonds: bool = False

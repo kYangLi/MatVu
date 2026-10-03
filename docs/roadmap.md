@@ -54,7 +54,7 @@ src/matvu/
 - 已实现功能：
   - POSCAR 解析：VASP 4/5、负 scale（目标体积）、Cartesian/Direct、Selective dynamics
   - 距离键连：默认"显示原子之间"（可画），`use_mic=True` 得无限晶体邻接表；
-    金属–金属默认不成键，无键结构自动切换密堆积半径
+    金属–金属默认不成键，无键结构自动使用清晰分离的晶格球半径（`Style.unbonded_atom_scale` 可调）
   - 自动视角 v0（算法见 §5）
   - tracer 后端（默认）：纯 numpy 解析光线投射、精确遮挡 + 边缘暗化；
     透视相机（默认 0.25）；晶胞框只给三维晶体绘制（分子盒/准二维板层自动跳过，`--no-cell` 可关）

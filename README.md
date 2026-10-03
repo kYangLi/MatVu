@@ -29,7 +29,8 @@ Early development, but already useful:
 - `matvu candidates`: contact sheet of the top-ranked viewpoints, annotated with
   angles and scores — the tool used to calibrate the scoring model
 - Sensible defaults for metals: metal-metal bonds are skipped and bulk metals
-  render as close-packed spheres (`--metal-bonds` re-enables the sticks)
+  render as a clear lattice of distinct spheres (`--metal-bonds` re-enables
+  the sticks)
 - Unit cell frame drawn for 3D crystals only; molecular vacuum boxes and 2D
   slab cells are detected automatically and skipped (`--no-cell` hides it)
 - Mild perspective by default (`--perspective 0` for orthographic);

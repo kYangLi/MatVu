@@ -55,6 +55,16 @@ uv pip install -e ".[dev]"
 pytest
 ```
 
+## Examples
+
+```bash
+.venv/bin/python examples/showcase.py
+```
+
+Renders every structure in `examples/structures/` with an automatically chosen
+viewpoint and the tracer backend, writing individual figures plus a contact
+sheet to `examples/out/`.
+
 ## Command line
 
 ```bash

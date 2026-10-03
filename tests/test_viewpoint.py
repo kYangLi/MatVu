@@ -2,7 +2,7 @@ import numpy as np
 
 from matvu import Structure, View
 from matvu.scene import build_scene
-from matvu.viewpoint import fibonacci_sphere, pick_view, score
+from matvu.viewpoint import fibonacci_sphere, pick_view, score, slab_normal
 
 
 def _chain() -> Structure:
@@ -56,3 +56,29 @@ def test_view_angles():
     assert elevation == 0.0
     _, elevation = View([0.0, 0.0, 1.0]).angles_deg()
     assert elevation == 90.0
+
+
+def test_slab_normal_only_for_layered_periodic_structures():
+    from pathlib import Path
+
+    from matvu import load_structure
+
+    data = Path(__file__).resolve().parents[1] / "examples" / "structures"
+    graphene = load_structure(data / "graphene.POSCAR").supercell((3, 3, 1))
+    normal = slab_normal(build_scene(graphene))
+    assert normal is not None
+    assert abs(float(normal[2])) > 0.99
+    assert slab_normal(build_scene(load_structure(data / "Si.POSCAR"))) is None
+    assert slab_normal(build_scene(load_structure(data / "water.POSCAR"))) is None
+
+
+def test_graphene_auto_view_is_tilted():
+    from pathlib import Path
+
+    from matvu import load_structure
+
+    data = Path(__file__).resolve().parents[1] / "examples" / "structures"
+    scene = build_scene(load_structure(data / "graphene.POSCAR").supercell((3, 3, 1)))
+    view = pick_view(scene, seed=0)
+    angle = float(np.degrees(np.arccos(abs(float(view.direction[2])))))
+    assert 10.0 < angle < 65.0

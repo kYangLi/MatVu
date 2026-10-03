@@ -62,6 +62,8 @@ def cell_corners(scene: Scene) -> np.ndarray | None:
     """
     if scene.cell_origin is None or scene.lattice is None:
         return None
+    if not any(scene.pbc):
+        return None
     if abs(np.linalg.det(scene.lattice)) < 1e-9:
         return None
     if scene.n_atoms == 0:

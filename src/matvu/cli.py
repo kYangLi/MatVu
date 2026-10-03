@@ -67,6 +67,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="hide the unit cell frame",
     )
     render_parser.add_argument(
+        "--perspective",
+        type=float,
+        default=None,
+        help="perspective strength (0 = orthographic, default 0.25)",
+    )
+    render_parser.add_argument(
         "--supersample",
         type=int,
         default=None,
@@ -144,6 +150,8 @@ def _cmd_render(args) -> int:
         style.metal_metal_bonds = True
     if args.no_cell:
         style.draw_cell = False
+    if args.perspective is not None:
+        style.perspective = args.perspective
     if args.supersample is not None:
         style.supersample = args.supersample
 

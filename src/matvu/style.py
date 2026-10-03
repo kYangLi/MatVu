@@ -43,3 +43,4 @@ class Style:
     margin: float = 0.06
     width_in: float = 6.0
     dpi: int = 300
+    perspective: float = 0.25  # 0 = orthographic, larger = stronger perspective

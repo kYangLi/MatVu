@@ -103,6 +103,19 @@ def test_cell_frame_is_drawn():
     assert not np.allclose(with_frame, without_frame)
 
 
+def test_perspective_changes_the_image():
+    lattice = np.zeros((3, 3))
+    positions = np.array([[-1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.5]])
+    structure = Structure(lattice, positions, ["H", "H", "H"], pbc=(False, False, False))
+    style_ortho = Style(width_in=1.5, dpi=50, supersample=1, perspective=0.0)
+    style_persp = Style(width_in=1.5, dpi=50, supersample=1, perspective=0.35)
+    view = View([0.0, 1.0, 0.0])
+    ortho = trace_image(build_scene(structure, style_ortho), view, style_ortho)
+    persp = trace_image(build_scene(structure, style_persp), view, style_persp)
+    assert ortho.shape == persp.shape
+    assert not np.allclose(ortho, persp)
+
+
 def test_render_with_tracer_backend(tmp_path):
     style = Style(width_in=1.5, dpi=80, supersample=1)
     output = Path(

@@ -98,6 +98,36 @@ def candidate_views(scene: Scene, *, n_surface: int = 240) -> list[View]:
     return [View(d) for d in unique]
 
 
+SLAB_FLATNESS = 0.45
+SLAB_TILT_DEG = 32.0
+
+
+def slab_normal(scene: Scene, *, flatness: float = SLAB_FLATNESS) -> np.ndarray | None:
+    """Normal of a quasi-2D slab (layered material), or ``None``.
+
+    Molecular vacuum boxes (atoms occupying less than half of every lattice
+    direction) are excluded, so flat molecules keep their face-on view.
+    """
+    if scene.n_atoms < 3:
+        return None
+    if scene.cell_origin is None or scene.lattice is None:
+        return None
+    if abs(np.linalg.det(scene.lattice)) < 1e-9:
+        return None
+    fractional = (scene.positions - scene.cell_origin) @ np.linalg.inv(scene.lattice)
+    if float(np.ptp(fractional, axis=0).max()) < 0.5:
+        return None
+    weights = np.array([elements.atomic_mass(s) for s in scene.symbols])
+    values, axes = principal_axes(scene.positions, weights)
+    if values[0] <= 1e-12:
+        return None
+    thickness = float(np.sqrt(max(values[2], 0.0)))
+    width = float(np.sqrt(values[0]))
+    if width <= 1e-12 or thickness > flatness * width:
+        return None
+    return axes[:, 2].astype(float)
+
+
 def _circle_intersection_area(distance, radius_a, radius_b) -> np.ndarray:
     """Area of the intersection of two circles (vectorised, exact)."""
     distance = np.asarray(distance, dtype=float)
@@ -242,6 +272,25 @@ def pick_view(
         ]
         best_index = top[int(np.argmax(alignment))]
         best_score = scores[best_index]
+
+    # Layered (quasi-2D) structures look best from a moderate tilt: among the
+    # defect-free candidates prefer a view ~SLAB_TILT_DEG away from the normal.
+    normal = slab_normal(scene)
+    if normal is not None:
+        top = [i for i, value in enumerate(scores) if value >= best_score - 0.02]
+        angles = [
+            float(
+                np.degrees(
+                    np.arccos(np.clip(abs(candidates[i].direction @ normal), 0.0, 1.0))
+                )
+            )
+            for i in top
+        ]
+        tilted = [k for k, angle in enumerate(angles) if 18.0 <= angle <= 52.0]
+        if tilted:
+            best_index = top[min(tilted, key=lambda k: abs(angles[k] - SLAB_TILT_DEG))]
+            best_score = scores[best_index]
+
     best = candidates[best_index]
 
     for round_index in range(refine_rounds):

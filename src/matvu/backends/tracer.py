@@ -3,10 +3,14 @@
 Every pixel ray is intersected analytically with the scene's spheres (atoms)
 and half-cylinders (bonds) and composited through a z-buffer, so sticks are
 properly occluded by balls and vice versa — no painter's-algorithm artefacts.
-Pure numpy, deterministic, works headless; anti-aliasing by supersampling.
 
-This is MatVu's high-quality static renderer, comparable in spirit to the
-POV-Ray workflow used by ASE/VESTA, but with no external binary.
+Two camera models share the same code path:
+
+* orthographic (``Style.perspective = 0``) - canonical for exact crystal views;
+* perspective (default, mild) - natural depth for slabs, molecules and
+  publication-style figures.
+
+Pure numpy, deterministic, works headless; anti-aliasing by supersampling.
 """
 
 from __future__ import annotations
@@ -63,17 +67,20 @@ def _shade(
     style: Style,
     key_light: np.ndarray,
     fill_light: np.ndarray,
-    view_direction: np.ndarray,
+    view: np.ndarray,
 ) -> np.ndarray:
-    """Lambert + Blinn-Phong shading for a block of surface normals."""
+    """Lambert + Blinn-Phong shading; ``view`` points to the camera."""
     lambert = np.clip(normals @ key_light, 0.0, 1.0)
     fill = np.clip(normals @ fill_light, 0.0, 1.0) * 0.12
-    half = key_light + view_direction
-    half = half / np.linalg.norm(half)
-    specular = np.clip(normals @ half, 0.0, 1.0) ** style.highlight_shininess
+    half = key_light + view
+    half = half / np.linalg.norm(half, axis=-1, keepdims=True)
+    specular = (
+        np.clip(np.einsum("...i,...i", normals, half), 0.0, 1.0)
+        ** style.highlight_shininess
+    )
     intensity = style.ambient + style.diffuse * lambert + fill
     # Darken towards the silhouette so spheres read against the background.
-    edge = 0.75 + 0.25 * np.clip(normals @ view_direction, 0.0, 1.0)
+    edge = 0.75 + 0.25 * np.clip(np.einsum("...i,...i", normals, view), 0.0, 1.0)
     shaded = (
         intensity[..., None] * base * edge[..., None]
         + style.specular * specular[..., None]
@@ -107,18 +114,60 @@ def trace_image(
     fill_screen = fill_screen / np.linalg.norm(fill_screen)
     fill_light = fill_screen[0] * right + fill_screen[1] * up + fill_screen[2] * direction
 
-    # View-plane bounds from the projected atoms.
-    planar = positions @ basis.T
-    planar_xy = planar[:, :2]
-    lower = (planar_xy - radii[:, None]).min(axis=0) - style.bond_radius
-    upper = (planar_xy + radii[:, None]).max(axis=0) + style.bond_radius
+    scene_radius = 1.0
+    if scene.n_atoms:
+        scene_radius = float(np.max(np.linalg.norm(positions, axis=1) + radii))
+    scene_radius = max(scene_radius, 1e-3)
 
-    # The cell frame is part of the picture when it is drawn.
+    perspective = max(float(getattr(style, "perspective", 0.0)), 0.0)
+    if perspective > 1e-6:
+        camera_distance = scene_radius / perspective
+        focal = camera_distance
+        camera_position = camera_distance * direction
+    else:
+        camera_distance = None
+        focal = 0.0
+        camera_position = None
+
+    def image_points(points: np.ndarray) -> np.ndarray:
+        """Map world points ``(..., 3)`` to image-plane coordinates."""
+        x = points @ right
+        y = points @ up
+        if camera_distance is None:
+            return np.stack([x, y], axis=-1)
+        depth = camera_distance - (points @ direction)
+        scale = focal / np.maximum(depth, 1e-6)
+        return np.stack([x * scale, y * scale], axis=-1)
+
+    def image_radius(centre: np.ndarray, radius: float) -> float:
+        if camera_distance is None:
+            return radius
+        depth = camera_distance - float(centre @ direction)
+        return radius * focal / max(depth, 1e-6)
+
+    # Framing: image-plane bounding box of atoms (plus radii) and cell corners.
+    if scene.n_atoms:
+        atom_images = image_points(positions)
+        atom_image_radii = np.array(
+            [
+                image_radius(positions[i], float(radii[i]))
+                for i in range(scene.n_atoms)
+            ],
+            dtype=np.float64,
+        )
+        lower = (atom_images - atom_image_radii[:, None]).min(axis=0) - style.bond_radius
+        upper = (atom_images + atom_image_radii[:, None]).max(axis=0) + style.bond_radius
+    else:
+        atom_images = np.zeros((0, 2), dtype=np.float32)
+        atom_image_radii = np.zeros(0, dtype=np.float64)
+        lower = np.zeros(2, dtype=np.float64)
+        upper = np.ones(2, dtype=np.float64)
+
     corners = cell_corners(scene) if style.draw_cell else None
     if corners is not None:
-        corner_xy = (corners.astype(np.float32) @ basis.T)[:, :2]
-        lower = np.minimum(lower, corner_xy.min(axis=0))
-        upper = np.maximum(upper, corner_xy.max(axis=0))
+        corner_image = image_points(corners.astype(np.float32))
+        lower = np.minimum(lower, corner_image.min(axis=0))
+        upper = np.maximum(upper, corner_image.max(axis=0))
 
     pad = np.maximum(upper - lower, 1e-6) * style.margin
     lower = lower - pad
@@ -141,7 +190,7 @@ def trace_image(
     y_coords = y1 - (np.arange(height, dtype=np.float32) + 0.5) * np.float32(
         (y1 - y0) / height
     )
-    depth = np.full((height, width), -np.inf, dtype=np.float32)
+    depth = np.full((height, width), np.inf, dtype=np.float32)
     colour = np.zeros((height, width, 3), dtype=np.float32)
 
     def pixel_window(centre_x: float, centre_y: float, radius: float):
@@ -151,16 +200,30 @@ def trace_image(
         row1 = int(np.ceil((y1 - centre_y + radius) / (y1 - y0) * height))
         return max(row0, 0), min(row1, height), max(col0, 0), min(col1, width)
 
-    def write(row0, row1, col0, col1, hit, valid, base, normals, flat=False):
+    def make_rays(row0, row1, col0, col1):
+        sx = x_coords[col0:col1][None, :]
+        sy = y_coords[row0:row1][:, None]
+        plane = sx[..., None] * right + sy[..., None] * up
+        if camera_distance is None:
+            origins = plane + (5.0 * scene_radius) * direction
+            dirs = np.empty_like(origins)
+            dirs[...] = -direction
+            return origins, dirs
+        vector = plane - camera_position
+        dirs = vector / np.linalg.norm(vector, axis=-1, keepdims=True)
+        origins = np.broadcast_to(camera_position, vector.shape)
+        return origins, dirs
+
+    def write(row0, row1, col0, col1, t, valid, base, normals, view_dirs, flat=False):
         block = depth[row0:row1, col0:col1]
-        update = valid & (hit > block)
+        update = valid & (t < block)
         if not update.any():
             return
         if flat:
             shaded = np.broadcast_to(base, (row1 - row0, col1 - col0, 3))
         else:
-            shaded = _shade(normals, base, style, key_light, fill_light, direction)
-        depth[row0:row1, col0:col1] = np.where(update, hit, block)
+            shaded = _shade(normals, base, style, key_light, fill_light, view_dirs)
+        depth[row0:row1, col0:col1] = np.where(update, t, block)
         block_colour = colour[row0:row1, col0:col1]
         colour[row0:row1, col0:col1] = np.where(
             update[..., None], shaded, block_colour
@@ -169,69 +232,68 @@ def trace_image(
     for index in range(scene.n_atoms):
         centre = positions[index]
         radius = float(radii[index])
-        plane = basis @ centre
+        image_c = atom_images[index]
+        image_r = float(atom_image_radii[index])
         row0, row1, col0, col1 = pixel_window(
-            float(plane[0]), float(plane[1]), radius
+            float(image_c[0]), float(image_c[1]), image_r * 1.25 + 1e-6
         )
         if row0 >= row1 or col0 >= col1:
             continue
-        sx = x_coords[col0:col1][None, :]
-        sy = y_coords[row0:row1][:, None]
-        points = sx[..., None] * right + sy[..., None] * up
-        offset = centre - points
-        md = offset @ direction
-        mm = np.einsum("...i,...i", offset, offset)
-        disc = md * md - (mm - radius * radius)
+        origins, dirs = make_rays(row0, row1, col0, col1)
+        offset = origins - centre
+        b_term = np.einsum("...i,...i", offset, dirs)
+        c_term = np.einsum("...i,...i", offset, offset) - radius * radius
+        disc = b_term * b_term - c_term
         valid = disc >= 0.0
-        hit = md + np.sqrt(np.maximum(disc, 0.0))
-        hit = np.where(valid, hit, 0.0)
-        normals = (points + hit[..., None] * direction - centre) / radius
-        write(row0, row1, col0, col1, hit, valid, colours[index], normals)
+        t = -b_term - np.sqrt(np.maximum(disc, 0.0))
+        valid = valid & (t > 0.0)
+        t_safe = np.where(valid, t, 0.0)
+        normals = (origins + t_safe[..., None] * dirs - centre) / radius
+        write(row0, row1, col0, col1, t, valid, colours[index], normals, -dirs)
 
     def put_cylinder(start, end, radius, base, flat=False):
         axis = end - start
         length = float(np.linalg.norm(axis))
         if length < 1e-6:
             return
-        unit = axis / length
-        plane_a = basis @ start
-        plane_b = basis @ end
-        centre_x = 0.5 * float(plane_a[0] + plane_b[0])
-        centre_y = 0.5 * float(plane_a[1] + plane_b[1])
-        half_extent = 0.5 * float(
-            np.hypot(plane_b[0] - plane_a[0], plane_b[1] - plane_a[1])
-        ) + radius
+        image_a = image_points(start[None, :])[0]
+        image_b = image_points(end[None, :])[0]
+        radius_a = image_radius(start, radius)
+        radius_b = image_radius(end, radius)
+        centre_x = 0.5 * float(image_a[0] + image_b[0])
+        centre_y = 0.5 * float(image_a[1] + image_b[1])
+        half_extent = (
+            0.5 * float(np.hypot(image_b[0] - image_a[0], image_b[1] - image_a[1]))
+            + max(radius_a, radius_b)
+        ) * 1.25 + 1e-6
         row0, row1, col0, col1 = pixel_window(centre_x, centre_y, half_extent)
         if row0 >= row1 or col0 >= col1:
             return
-        sx = x_coords[col0:col1][None, :]
-        sy = y_coords[row0:row1][:, None]
-        points = sx[..., None] * right + sy[..., None] * up
-        offset = points - start
-        axial = offset @ unit
-        perpendicular = offset - axial[..., None] * unit
-        direction_parallel = float(direction @ unit)
-        v = direction - direction_parallel * unit
-        vv = float(v @ v)
-        if vv < 1e-10:
-            return  # bond axis (anti)parallel to the view; atoms cover it
-        b_term = perpendicular @ v
+        origins, dirs = make_rays(row0, row1, col0, col1)
+        unit = axis / length
+        offset = origins - start
+        direction_parallel = dirs @ unit
+        axial_offset = offset @ unit
+        v = dirs - direction_parallel[..., None] * unit
+        perpendicular = offset - axial_offset[..., None] * unit
+        vv = np.einsum("...i,...i", v, v)
+        b_term = np.einsum("...i,...i", perpendicular, v)
         c_term = np.einsum("...i,...i", perpendicular, perpendicular) - radius**2
         disc = b_term * b_term - vv * c_term
         sqrt_disc = np.sqrt(np.maximum(disc, 0.0))
-        s_one = (-b_term + sqrt_disc) / vv
-        s_two = (-b_term - sqrt_disc) / vv
-        t_one = axial + s_one * direction_parallel
-        t_two = axial + s_two * direction_parallel
-        ok_one = (disc >= 0.0) & (t_one >= 0.0) & (t_one <= length)
-        ok_two = (disc >= 0.0) & (t_two >= 0.0) & (t_two <= length)
-        hit = np.maximum(
-            np.where(ok_one, s_one, -np.inf), np.where(ok_two, s_two, -np.inf)
-        )
-        valid = np.isfinite(hit)
-        hit_safe = np.where(valid, hit, 0.0)
-        normals = (perpendicular + hit_safe[..., None] * v) / radius
-        write(row0, row1, col0, col1, hit, valid, base, normals, flat=flat)
+        safe_vv = np.where(vv > 1e-12, vv, 1.0)
+        t_one = (-b_term - sqrt_disc) / safe_vv
+        t_two = (-b_term + sqrt_disc) / safe_vv
+        axial_one = axial_offset + t_one * direction_parallel
+        axial_two = axial_offset + t_two * direction_parallel
+        both_ok = (disc >= 0.0) & (vv > 1e-12)
+        ok_one = both_ok & (t_one > 0.0) & (axial_one >= 0.0) & (axial_one <= length)
+        ok_two = both_ok & (t_two > 0.0) & (axial_two >= 0.0) & (axial_two <= length)
+        t = np.where(ok_one, t_one, np.where(ok_two, t_two, np.inf))
+        valid = np.isfinite(t)
+        t_safe = np.where(valid, t, 0.0)
+        normals = (perpendicular + t_safe[..., None] * v) / radius
+        write(row0, row1, col0, col1, t, valid, base, normals, -dirs, flat=flat)
 
     for i, j in scene.bonds:
         a = positions[i]
@@ -255,7 +317,7 @@ def trace_image(
             )
 
     # Supersampled anti-aliasing.
-    coverage = (depth > -np.inf).astype(np.float32)
+    coverage = (depth < np.inf).astype(np.float32)
     if factor > 1:
         colour = colour.reshape(final_height, factor, final_width, factor, 3).mean(
             axis=(1, 3)

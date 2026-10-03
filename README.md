@@ -32,6 +32,9 @@ Early development, but already useful:
   render as close-packed spheres (`--metal-bonds` re-enables the sticks)
 - Unit cell frame drawn automatically for periodic crystals (molecular vacuum
   boxes are detected and skipped; `--no-cell` hides the frame)
+- Mild perspective by default (`--perspective 0` for orthographic);
+  layered 2D materials are automatically shown at a ~30 degree tilt while
+  flat molecules keep their face-on view
 - POSCAR reader with a small plugin interface for future formats (CIF, XYZ, ...)
 - Ball-and-stick rendering with two backends:
   - `tracer` (default): an analytic ray-casting renderer in pure numpy with a

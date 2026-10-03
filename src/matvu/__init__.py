@@ -11,6 +11,7 @@ automatically and renders a publication-ready ball-and-stick figure::
 __version__ = "0.1.0.dev0"
 
 from .backends import available_backends, register_backend
+from .gallery import rank_candidates, render_candidates
 from .io import available_formats, load_structure, register_reader
 from .render import auto_view, render, resolve_view
 from .structure import Structure
@@ -28,9 +29,11 @@ __all__ = [
     "available_formats",
     "load_structure",
     "pick_view",
+    "rank_candidates",
     "register_backend",
     "register_reader",
     "render",
+    "render_candidates",
     "resolve_view",
     "score_view",
 ]

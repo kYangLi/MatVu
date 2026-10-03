@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 
 from .backends import available_backends
+from .gallery import rank_candidates, render_candidate_sheet
 from .geometry import cell_params
 from .io import load_structure
 from .render import render, resolve_view
@@ -56,6 +57,33 @@ def build_parser() -> argparse.ArgumentParser:
     info_parser = subcommands.add_parser("info", help="print basic structure information")
     info_parser.add_argument("structure")
 
+    candidates_parser = subcommands.add_parser(
+        "candidates",
+        help="render a contact sheet of the best candidate viewpoints",
+    )
+    candidates_parser.add_argument("structure")
+    candidates_parser.add_argument("-o", "--output", default=None)
+    candidates_parser.add_argument(
+        "-n", type=int, default=12, help="number of viewpoints in the sheet"
+    )
+    candidates_parser.add_argument(
+        "--n-surface",
+        type=int,
+        default=240,
+        help="size of the Fibonacci sampling (more = finer search)",
+    )
+    candidates_parser.add_argument("--cols", type=int, default=None)
+    candidates_parser.add_argument("--tile-width", type=float, default=2.0)
+    candidates_parser.add_argument("--dpi", type=int, default=200)
+    candidates_parser.add_argument("--seed", type=int, default=0, help="auto view search seed")
+    candidates_parser.add_argument(
+        "--supercell",
+        nargs=3,
+        type=int,
+        default=None,
+        metavar=("NX", "NY", "NZ"),
+    )
+
     return parser
 
 
@@ -66,6 +94,8 @@ def main(argv=None) -> int:
         return _cmd_render(args)
     if args.command == "info":
         return _cmd_info(args)
+    if args.command == "candidates":
+        return _cmd_candidates(args)
     parser.print_help()
     return 1
 
@@ -111,6 +141,45 @@ def _cmd_render(args) -> int:
             f"| direction [{d[0]:+.3f} {d[1]:+.3f} {d[2]:+.3f}]"
         )
     print(f"[matvu] wrote {result}")
+    return 0
+
+
+def _cmd_candidates(args) -> int:
+    if not os.environ.get("DISPLAY"):
+        import matplotlib
+
+        matplotlib.use("Agg")
+
+    structure = load_structure(args.structure)
+    if args.supercell is not None:
+        structure = structure.supercell(tuple(args.supercell))
+    style = Style()
+    scene = build_scene(structure, style)
+    ranking = rank_candidates(scene, n=args.n, n_surface=args.n_surface, seed=args.seed)
+
+    output = Path(args.output) if args.output else Path(f"{_stem(args.structure)}_candidates.png")
+    path = render_candidate_sheet(
+        scene,
+        ranking,
+        output,
+        cols=args.cols,
+        tile_width=args.tile_width,
+        dpi=args.dpi,
+        style=style,
+    )
+
+    auto = ranking.auto
+    print(
+        f"[matvu] {structure.formula} | {structure.n_atoms} atoms "
+        f"| {scene.n_bonds} bonds"
+    )
+    if auto is not None:
+        azimuth, elevation = auto.view.angles_deg()
+        print(
+            f"[matvu] candidates: evaluated {ranking.n_evaluated} | auto view "
+            f"az {azimuth:.1f} deg, el {elevation:.1f} deg (score {auto.score:.3f})"
+        )
+    print(f"[matvu] wrote {path}")
     return 0
 
 

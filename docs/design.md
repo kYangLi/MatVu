@@ -21,6 +21,7 @@
 | `geometry.py` | 最小镜像、距离矩阵、键连、惯量主轴、视角基 |
 | `scene.py` | 由 `Structure` 构建可渲染 `Scene`；正交投影 `project()` |
 | `viewpoint.py` | 候选视角生成、评分、`auto` 搜索（项目核心算法） |
+| `gallery.py` | 候选视角排名与连拍图（评估 / 校准工具） |
 | `style.py` | 渲染样式（原子/键尺寸、光照、画布、输出参数） |
 | `backends/` | 后端注册与实现：`base.py` 协议、`mpl.py` matplotlib |
 | `render.py` | 高层 API：`render()` / `auto_view()` / `resolve_view()` |
@@ -36,7 +37,7 @@
 
 评分（惩罚越小越好，`score = 1 - penalty`）：
 
-- **遮挡率** 权重 0.60：原子投影中心被更靠近相机的原子圆盘覆盖的比例
+- **遮挡率** 权重 0.60：每个原子投影圆盘被更靠近相机的原子覆盖的面积比例（圆交叠解析计算，连续度量；"差一点就重叠"也会被合理扣分）
 - **键压缩** 权重 0.25：投影键长 / 真实键长低于 0.35 的部分按比例惩罚（避免键指向相机）
 - **长宽比** 权重 0.15：投影包围盒超过约 2.2:1 后惩罚（避免构图过扁）
 
@@ -72,7 +73,7 @@ register_reader("cif", read_cif)
 ## 路线图
 
 - **v0.1（当前）**：核心模型、POSCAR 读取、自动视角 v0、matplotlib 后端、CLI
-- **v0.2**：web 交互后端；候选视角连拍图（candidate gallery）；`view="interactive"`
+- **v0.2**：候选视角连拍图（✅ `matvu candidates`）；web 交互后端；`view="interactive"`
 - **v0.3**：CIF/XYZ 读取器；透视相机；spacefill/wireframe 样式；超胞与选区
 - **v0.4**：对称性感知视角；旋转/动画导出；论文模板（配色、字号、构图）
 

@@ -44,6 +44,7 @@ src/matvu/
   geometry.py      # 最小镜像、距离矩阵、键连、惯量主轴、视角基
   scene.py         # Scene 构建 + 正交投影 Projection
   viewpoint.py     # ★ 候选视角 + 评分 + auto 搜索（项目核心）
+  gallery.py       # 候选视角排名 + 连拍图（评估/校准）
   style.py         # 尺寸/光照/画布样式
   backends/        # base.py 协议 + mpl.py 实现 + 注册表
   render.py        # 高层 API：render / auto_view / resolve_view
@@ -76,7 +77,8 @@ src/matvu/
 - 搜索：全局最优 → 同分（1% 内）优先对齐高对称方向 → 两轮锥形局部精修（20°、约 7°）。
 - 调参入口：`src/matvu/viewpoint.py` 顶部权重常量；
   `pick_view(scene, n_surface=..., refine_rounds=..., samples_per_round=..., seed=...)`。
-- **当前缺口：缺少评估工具**。调权重前必须先做 P0-1 的候选连拍图。
+- 评估工具：`matvu candidates`（P0-1，已完成）把评分最高的候选排成网格便于肉眼校准；
+  遮挡度量已由"中心 0/1 判定"升级为"投影圆盘被覆盖的面积比例"（连续），解决了评分饱和问题。
 
 ## 6. 开放问题（未定，不要当结论）
 
@@ -91,10 +93,11 @@ src/matvu/
 
 ### P0（下一步，建议按序）
 
-1. **候选视角连拍图** `matvu candidates POSCAR -o sheet.png -n 12`
-   - 实现：复用 `candidate_views()` + `score()`，用 matplotlib 后端画 3-4 列小图网格，
-     每格标注方位角/仰角/总分，高亮最优。
-   - 验收：一条命令可复现；每格可读；带测试；能用于调 §5 权重。
+1. ✅ **候选视角连拍图**（2026-10-03 完成）`matvu candidates POSCAR -o sheet.png -n 12`
+   - 实现：`src/matvu/gallery.py` 的 `rank_candidates()` + `render_candidate_sheet()`；
+     每格标注方位角/仰角/总分，高亮最优；同分时与 `pick_view` 一致地优先对齐高对称方向。
+   - 副产品：发现并修复评分饱和——遮挡度量改为投影圆盘的连续面积覆盖；
+     待评估：是否加入"立体感"偏好（见 §6 开放问题）。
 2. **Web 交互后端** `matvu render POSCAR --backend web -o view.html`
    - 验收：单文件 HTML 可离线打开；旋转/缩放；初始相机 = 自动视角方向；
      通过后端注册表接入，不污染核心。

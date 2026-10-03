@@ -98,14 +98,52 @@ def candidate_views(scene: Scene, *, n_surface: int = 240) -> list[View]:
     return [View(d) for d in unique]
 
 
+def _circle_intersection_area(distance, radius_a, radius_b) -> np.ndarray:
+    """Area of the intersection of two circles (vectorised, exact)."""
+    distance = np.asarray(distance, dtype=float)
+    radius_a = np.asarray(radius_a, dtype=float)
+    radius_b = np.asarray(radius_b, dtype=float)
+    distance, radius_a, radius_b = np.broadcast_arrays(
+        distance, radius_a, radius_b
+    )
+    result = np.zeros(distance.shape, dtype=float)
+    contained = distance <= np.abs(radius_a - radius_b)
+    result[contained] = (
+        np.pi * np.minimum(radius_a, radius_b)[contained] ** 2
+    )
+    partial = (distance < radius_a + radius_b) & ~contained
+    if np.any(partial):
+        d = distance[partial]
+        big = radius_a[partial]
+        small = radius_b[partial]
+        part_one = small**2 * np.arccos(
+            np.clip((d**2 + small**2 - big**2) / (2.0 * d * small), -1.0, 1.0)
+        )
+        part_two = big**2 * np.arccos(
+            np.clip((d**2 + big**2 - small**2) / (2.0 * d * big), -1.0, 1.0)
+        )
+        part_three = 0.5 * np.sqrt(
+            np.maximum(
+                0.0,
+                (-d + small + big)
+                * (d + small - big)
+                * (d - small + big)
+                * (d + small + big),
+            )
+        )
+        result[partial] = part_one + part_two - part_three
+    return result
+
+
 def score(scene: Scene, view: View) -> dict[str, float]:
     """Score one viewpoint. Higher ``score`` (in [0, 1]) is better.
 
     Metrics
     -------
-    hidden:
-        Fraction of atoms whose projected centre lies inside the projected
-        disk of a nearer atom (heavy occlusion).
+    occlusion:
+        Mean fraction of each atom's projected disk that is covered by atoms
+        closer to the camera. Continuous measure: a pair that barely fails to
+        overlap is penalised slightly, a fully hidden atom counts as one.
     bond_penalty:
         Mean penalty for bonds that are strongly foreshortened (nearly
         pointing at the camera).
@@ -117,15 +155,19 @@ def score(scene: Scene, view: View) -> dict[str, float]:
     xy, depth, radii = projection.xy, projection.depth, projection.radii
     n_atoms = scene.n_atoms
 
-    # Occlusion: walk from the nearest atom backwards.
-    order = np.argsort(-depth)
-    covered = np.zeros(n_atoms, dtype=bool)
-    for j in order:
-        dx = xy[:, 0] - xy[j, 0]
-        dy = xy[:, 1] - xy[j, 1]
-        nearer = depth > depth[j]
-        covered |= nearer & (dx * dx + dy * dy < (0.85 * radii[j]) ** 2)
-    hidden = float(covered.sum()) / max(n_atoms, 1)
+    # Occlusion: mean covered fraction of each atom's projected disk.
+    coverage = np.zeros(n_atoms, dtype=float)
+    for i in range(n_atoms):
+        nearer = depth > depth[i]
+        if not np.any(nearer):
+            continue
+        distance = np.hypot(
+            xy[nearer, 0] - xy[i, 0], xy[nearer, 1] - xy[i, 1]
+        )
+        lens_area = _circle_intersection_area(distance, radii[i], radii[nearer])
+        disk_area = np.pi * radii[i] ** 2
+        coverage[i] = min(float(lens_area.sum()) / disk_area, 1.0)
+    occlusion = float(coverage.mean())
 
     # Bond foreshortening.
     if scene.n_bonds:
@@ -147,11 +189,11 @@ def score(scene: Scene, view: View) -> dict[str, float]:
     aspect_penalty = float(np.clip((aspect_ratio - 2.2) / 2.0, 0.0, 1.0))
 
     total = 1.0 - (
-        W_OCCLUSION * hidden + W_BOND * bond_penalty + W_ASPECT * aspect_penalty
+        W_OCCLUSION * occlusion + W_BOND * bond_penalty + W_ASPECT * aspect_penalty
     )
     return {
         "score": total,
-        "hidden": hidden,
+        "occlusion": occlusion,
         "bond_penalty": bond_penalty,
         "aspect_penalty": aspect_penalty,
     }

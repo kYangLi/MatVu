@@ -26,6 +26,8 @@ Early development, but already useful:
 
 - `view="auto"`: viewpoint search over hundreds of candidate directions
   (Fibonacci sampling + principal axes + lattice directions, then local refinement)
+- `matvu candidates`: contact sheet of the top-ranked viewpoints, annotated with
+  angles and scores — the tool used to calibrate the scoring model
 - POSCAR reader with a small plugin interface for future formats (CIF, XYZ, ...)
 - Ball-and-stick renderer on a lightweight matplotlib backend (PNG / PDF / SVG)
 - Core architecture prepared for multiple backends (interactive web view planned)
@@ -35,7 +37,7 @@ Early development, but already useful:
 
 Early local development — **not released, not on PyPI, the API may change.**
 
-Roadmap: interactive web backend, candidate-view gallery, perspective camera,
+Roadmap: interactive web backend, perspective camera,
 polyhedra and space-filling styles, CIF/XYZ readers, symmetry-aware viewpoints.
 See `docs/design.md` for the architecture and the viewpoint scoring model, and
 `docs/roadmap.md` for the development plan and handover notes.
@@ -55,6 +57,7 @@ pytest
 ```bash
 matvu render POSCAR --view auto -o figure.png
 matvu render POSCAR --view a --width 4 --dpi 600 -o figure.pdf
+matvu candidates POSCAR -n 12 -o candidates.png
 matvu info POSCAR
 ```
 

@@ -8,6 +8,23 @@ from dataclasses import dataclass, field
 import numpy as np
 
 
+def formula_from_symbols(symbols: list[str]) -> str:
+    """Compact Hill-style formula, e.g. ``Si8``, ``H2O``, ``Cl4Na4``."""
+    counts = Counter(symbols)
+    keys = sorted(counts)
+    if "C" in counts:
+        order = ["C"]
+        if "H" in counts:
+            order.append("H")
+        order += [key for key in keys if key not in ("C", "H")]
+    else:
+        order = keys
+    return "".join(
+        symbol + (str(counts[symbol]) if counts[symbol] > 1 else "")
+        for symbol in order
+    )
+
+
 @dataclass
 class Structure:
     """A chemical structure in Cartesian coordinates.
@@ -77,16 +94,7 @@ class Structure:
     @property
     def formula(self) -> str:
         """Compact formula string, e.g. ``Si8``, ``H2O``, ``Cl4Na4``."""
-        counts = Counter(self.symbols)
-        keys = sorted(counts)
-        if "C" in counts:
-            order = ["C"]
-            if "H" in counts:
-                order.append("H")
-            order += [k for k in keys if k not in ("C", "H")]
-        else:
-            order = keys
-        return "".join(s + (str(counts[s]) if counts[s] > 1 else "") for s in order)
+        return formula_from_symbols(self.symbols)
 
     # ------------------------------------------------------------- operations
 

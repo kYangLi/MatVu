@@ -46,7 +46,7 @@ def test_score_is_bounded_and_finite():
     scene = build_scene(_chain())
     result = score(scene, View([0.0, 1.0, 0.0]))
     assert 0.0 <= result["score"] <= 1.0
-    for key in ("hidden", "bond_penalty", "aspect_penalty"):
+    for key in ("occlusion", "bond_penalty", "aspect_penalty"):
         assert np.isfinite(result[key])
 
 

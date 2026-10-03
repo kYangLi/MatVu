@@ -8,7 +8,7 @@ import numpy as np
 
 from . import elements
 from .geometry import find_bonds
-from .structure import Structure
+from .structure import Structure, formula_from_symbols
 from .style import Style
 
 
@@ -35,6 +35,11 @@ class Scene:
     @property
     def n_bonds(self) -> int:
         return int(self.bonds.shape[0])
+
+    @property
+    def formula(self) -> str:
+        """Compact formula of the scene contents."""
+        return formula_from_symbols(self.symbols)
 
 
 @dataclass

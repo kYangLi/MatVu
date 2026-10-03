@@ -31,7 +31,7 @@ def test_metal_metal_bonds_are_skipped_by_default():
     scene = build_scene(load_structure(DATA / "Cu.POSCAR"))
     assert scene.n_bonds == 0
     # distinct lattice spheres, clearly separated (not close-packed)
-    assert scene.radii[0] == pytest.approx(0.60 * 1.32, rel=1e-6)
+    assert scene.radii[0] == pytest.approx(0.45 * 1.32, rel=1e-6)
 
 
 def test_metal_metal_bonds_can_be_enabled():

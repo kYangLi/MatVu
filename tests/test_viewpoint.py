@@ -2,7 +2,13 @@ import numpy as np
 
 from matvu import Structure, View
 from matvu.scene import build_scene
-from matvu.viewpoint import fibonacci_sphere, pick_view, score, slab_normal
+from matvu.viewpoint import (
+    fibonacci_sphere,
+    pick_view,
+    projected_dispersion,
+    score,
+    slab_normal,
+)
 
 
 def _chain() -> Structure:
@@ -82,3 +88,18 @@ def test_graphene_auto_view_is_tilted():
     view = pick_view(scene, seed=0)
     angle = float(np.degrees(np.arccos(abs(float(view.direction[2])))))
     assert 10.0 < angle < 65.0
+
+
+def test_dispersion_drives_crystal_views():
+    from pathlib import Path
+
+    from matvu import load_structure
+
+    data = Path(__file__).resolve().parents[1] / "examples" / "structures"
+    scene = build_scene(load_structure(data / "Cu.POSCAR").supercell((2, 2, 2)))
+    axis = projected_dispersion(scene, View([0.0, 0.0, 1.0]))
+    assert axis < 1e-9  # fcc columns coincide when looking along the c axis
+    view = pick_view(scene, seed=0)
+    chosen = projected_dispersion(scene, view)
+    assert chosen > 0.25
+    assert chosen > axis + 0.2

@@ -47,11 +47,22 @@ class Scene:
 SLAB_FLATNESS = 0.45
 
 
+def molecular_box(scene: Scene) -> bool:
+    """True when the cell is just a vacuum box around a finite molecule."""
+    if scene.cell_origin is None or scene.lattice is None:
+        return False
+    if abs(np.linalg.det(scene.lattice)) < 1e-9:
+        return False
+    if scene.n_atoms == 0:
+        return False
+    fractional = (scene.positions - scene.cell_origin) @ np.linalg.inv(scene.lattice)
+    return float(np.ptp(fractional, axis=0).max()) < 0.5
+
+
 def slab_normal(scene: Scene, *, flatness: float = SLAB_FLATNESS) -> np.ndarray | None:
     """Normal of a quasi-2D slab (layered material), or ``None``.
 
-    Molecular vacuum boxes (atoms occupying less than half of every lattice
-    direction) are excluded, so flat molecules are not treated as slabs.
+    Molecular vacuum boxes are excluded, so flat molecules are not slabs.
     """
     if scene.n_atoms < 3:
         return None
@@ -59,8 +70,7 @@ def slab_normal(scene: Scene, *, flatness: float = SLAB_FLATNESS) -> np.ndarray 
         return None
     if abs(np.linalg.det(scene.lattice)) < 1e-9:
         return None
-    fractional = (scene.positions - scene.cell_origin) @ np.linalg.inv(scene.lattice)
-    if float(np.ptp(fractional, axis=0).max()) < 0.5:
+    if molecular_box(scene):
         return None
     weights = np.array([elements.atomic_mass(s) for s in scene.symbols])
     values, axes = principal_axes(scene.positions, weights)
@@ -94,6 +104,8 @@ def cell_corners(scene: Scene) -> np.ndarray | None:
     if not any(scene.pbc):
         return None
     if abs(np.linalg.det(scene.lattice)) < 1e-9:
+        return None
+    if molecular_box(scene):
         return None
     if slab_normal(scene) is not None:
         return None  # 2D materials: no box edges

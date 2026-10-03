@@ -12,7 +12,7 @@ import numpy as np
 
 from . import elements
 from .geometry import principal_axes, view_basis
-from .scene import Scene, project, slab_normal
+from .scene import Scene, molecular_box, project, slab_normal
 
 # Penalty weights (must sum to 1).
 W_OCCLUSION = 0.60
@@ -99,6 +99,25 @@ def candidate_views(scene: Scene, *, n_surface: int = 240) -> list[View]:
 
 
 SLAB_TILT_DEG = 32.0
+
+
+def projected_dispersion(scene: Scene, view: View) -> float:
+    """Maximin spread of the projected atoms (larger = more evenly spread).
+
+    The projected coordinates are normalised by their RMS radius, then the
+    smallest pairwise distance is returned: a view with overlapping or
+    clustered atoms scores low, a well-spread view scores high.
+    """
+    xy = (scene.positions @ view.basis.T)[:, :2]
+    xy = xy - xy.mean(axis=0)
+    rms = float(np.sqrt((xy**2).sum(axis=1).mean()))
+    if rms < 1e-12:
+        return 0.0
+    xy = xy / rms
+    difference = xy[:, None, :] - xy[None, :, :]
+    distances = np.sqrt((difference**2).sum(axis=-1))
+    np.fill_diagonal(distances, np.inf)
+    return float(distances.min())
 
 
 def _circle_intersection_area(distance, radius_a, radius_b) -> np.ndarray:
@@ -236,18 +255,11 @@ def pick_view(
     best_index = int(np.argmax(scores))
     best_score = scores[best_index]
 
-    specials = special_directions(scene)
-    if specials:
-        top = [i for i, value in enumerate(scores) if value >= best_score - 0.01]
-        alignment = [
-            max(abs(float(candidates[i].direction @ s)) for s in specials)
-            for i in top
-        ]
-        best_index = top[int(np.argmax(alignment))]
-        best_score = scores[best_index]
-
-    # Layered (quasi-2D) structures look best from a moderate tilt: among the
-    # defect-free candidates prefer a view ~SLAB_TILT_DEG away from the normal.
+    # Aesthetic selection among the near-best candidates.
+    # - layered (quasi-2D) materials: moderate tilt from the layer normal;
+    # - finite molecules: face-on view, tie-broken towards high symmetry;
+    # - 3D crystals and clusters: maximin projected dispersion, so the atoms
+    #   spread out as evenly as possible in the picture.
     normal = slab_normal(scene)
     if normal is not None:
         top = [i for i, value in enumerate(scores) if value >= best_score - 0.02]
@@ -263,6 +275,21 @@ def pick_view(
         if tilted:
             best_index = top[min(tilted, key=lambda k: abs(angles[k] - SLAB_TILT_DEG))]
             best_score = scores[best_index]
+    elif molecular_box(scene):
+        specials = special_directions(scene)
+        if specials:
+            top = [i for i, value in enumerate(scores) if value >= best_score - 0.01]
+            alignment = [
+                max(abs(float(candidates[i].direction @ s)) for s in specials)
+                for i in top
+            ]
+            best_index = top[int(np.argmax(alignment))]
+            best_score = scores[best_index]
+    else:
+        top = [i for i, value in enumerate(scores) if value >= best_score - 0.02]
+        dispersion = [projected_dispersion(scene, candidates[i]) for i in top]
+        best_index = top[int(np.argmax(dispersion))]
+        best_score = scores[best_index]
 
     best = candidates[best_index]
 

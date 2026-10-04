@@ -46,6 +46,7 @@ class Style:
     background: str = "white"
     transparent: bool = True  # transparent PNG/PDF/SVG by default
     margin: float = 0.06
+    canvas: tuple[float, float] | None = None  # fixed view-plane size in Angstrom
     width_in: float = 6.0
     dpi: int = 300
     perspective: float = 0.18  # 0 = orthographic, larger = stronger perspective

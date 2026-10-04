@@ -82,6 +82,22 @@ def test_cli_render_flat_style(tmp_path):
     assert (tmp_path / "flat.png").exists()
 
 
+def test_cli_canvas_option(tmp_path):
+    code = main(
+        [
+            "render",
+            str(DATA / "water.POSCAR"),
+            "--canvas",
+            "6",
+            "4",
+            "-o",
+            str(tmp_path / "canvas.png"),
+        ]
+    )
+    assert code == 0
+    assert (tmp_path / "canvas.png").exists()
+
+
 def test_cli_info(capsys):
     assert main(["info", str(DATA / "NaCl.POSCAR")]) == 0
     captured = capsys.readouterr().out

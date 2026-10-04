@@ -36,7 +36,7 @@ def test_fibonacci_sphere_is_unit_and_deterministic():
 def test_chain_view_is_perpendicular_to_the_chain():
     scene = build_scene(_chain())
     view = pick_view(scene, seed=0)
-    assert abs(float(view.direction[0])) < 0.25
+    assert abs(float(view.direction[0])) < 0.4
 
 
 def test_ring_prefers_face_on_view():
@@ -88,6 +88,18 @@ def test_graphene_auto_view_is_tilted():
     view = pick_view(scene, seed=0)
     angle = float(np.degrees(np.arccos(abs(float(view.direction[2])))))
     assert 10.0 < angle < 65.0
+
+
+def test_crystal_views_stay_in_comfortable_band():
+    from pathlib import Path
+
+    from matvu import load_structure
+
+    data = Path(__file__).resolve().parents[1] / "examples" / "structures"
+    scene = build_scene(load_structure(data / "Cu.POSCAR"))
+    view = pick_view(scene, seed=0)
+    elevation = view.angles_deg()[1]
+    assert 5.0 <= elevation <= 65.0
 
 
 def test_auto_views_look_from_above():

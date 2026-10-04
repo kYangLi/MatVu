@@ -201,8 +201,15 @@ def trace_image(
     pad = np.maximum(upper - lower, 1e-6) * style.margin
     lower = lower - pad
     upper = upper + pad
-    x0, y0 = float(lower[0]), float(lower[1])
-    x1, y1 = float(upper[0]), float(upper[1])
+    if style.canvas is not None:
+        canvas_width, canvas_height = (float(value) for value in style.canvas)
+        centre_x = 0.5 * (float(lower[0]) + float(upper[0]))
+        centre_y = 0.5 * (float(lower[1]) + float(upper[1]))
+        x0, x1 = centre_x - canvas_width / 2.0, centre_x + canvas_width / 2.0
+        y0, y1 = centre_y - canvas_height / 2.0, centre_y + canvas_height / 2.0
+    else:
+        x0, y0 = float(lower[0]), float(lower[1])
+        x1, y1 = float(upper[0]), float(upper[1])
 
     final_width = int(width_px) if width_px else max(4, int(round(style.width_in * style.dpi)))
     aspect = (y1 - y0) / max(x1 - x0, 1e-9)

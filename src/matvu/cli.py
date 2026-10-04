@@ -69,6 +69,14 @@ def build_parser() -> argparse.ArgumentParser:
         choices=palette_names(),
         help="quick palette switch (overrides the theme palette)",
     )
+    render_parser.add_argument(
+        "--canvas",
+        nargs=2,
+        type=float,
+        metavar=("W", "H"),
+        default=None,
+        help="fixed view-plane size in Angstrom (uniform scale across figures)",
+    )
     render_parser.add_argument("--atom-scale", type=float, default=None)
     render_parser.add_argument("--bond-radius", type=float, default=None)
     render_parser.add_argument("--width", type=float, default=None, help="figure width in inches")
@@ -180,6 +188,8 @@ def _cmd_render(args) -> int:
         style = load_theme(args.theme, base=style).style
     if args.palette is not None:
         style.palette = args.palette
+    if args.canvas is not None:
+        style.canvas = (float(args.canvas[0]), float(args.canvas[1]))
     if args.atom_scale is not None:
         style.atom_scale = args.atom_scale
     if args.bond_radius is not None:

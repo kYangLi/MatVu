@@ -288,9 +288,9 @@ def pick_view(
         elevation = float(
             np.degrees(np.arcsin(np.clip(direction[2], -1.0, 1.0)))
         )
-        if elevation < 0.0:
-            return False
         if normal is not None:
+            if elevation < 0.0:
+                return False
             slant = float(
                 np.degrees(
                     np.arccos(np.clip(abs(float(direction @ normal)), 0.0, 1.0))
@@ -298,7 +298,9 @@ def pick_view(
             )
             return 12.0 <= slant <= 58.0
         if is_molecule:
-            return True
+            return elevation >= 0.0
+        if elevation < 5.0 or elevation > 65.0:
+            return False
         if lattice_directions:
             return max(abs(float(direction @ u)) for u in lattice_directions) <= 0.95
         return True
@@ -328,7 +330,13 @@ def pick_view(
             best_index = top[int(np.argmax(alignment))]
             best_score = scores[best_index]
     else:
-        top = [i for i in pool if scores[i] >= best_score - 0.02]
+        # Comfortable elevation band for 3D crystals: neither looking up nor
+        # a steep bird's-eye view.
+        band = [
+            i for i in pool if 10.0 <= candidates[i].angles_deg()[1] <= 60.0
+        ]
+        available = band if band else pool
+        top = [i for i in available if scores[i] >= best_score - 0.02]
         # Avoid "weird top-down" views: drop candidates nearly parallel to a
         # lattice vector when there are off-axis alternatives.
         if lattice_directions:

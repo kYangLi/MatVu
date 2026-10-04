@@ -31,10 +31,13 @@ Early development, but already useful:
 - Sensible defaults for metals: metal-metal bonds are skipped and bulk metals
   render as a clear lattice of distinct spheres (`--metal-bonds` re-enables
   the sticks)
+- Fixed-canvas option for a uniform scale: `--canvas W H` (Angstrom, also
+  `Style.canvas`) keeps the canvas size and the atom size identical across
+  figures, so structures keep their true relative sizes
 - Automatic viewpoint selection uses a maximin projected-dispersion criterion
-  for crystals (atoms spread out evenly; axis-aligned top-down views are
-  avoided), a ~30 degree tilt for layered materials and face-on views for
-  molecules
+  for crystals (atoms spread out evenly; views stay in a comfortable
+  above-horizon elevation band, neither looking up nor steep top-down), a
+  ~30 degree tilt for layered materials and face-on views for molecules
 - Three look presets, all sharing the same automatic viewpoint and the
   perspective camera: `3d` (shaded, default), `toon` (animation/cel style:
   flat colours, two-tone shadow, outlines) and `flat` (pure flat fill with
@@ -134,6 +137,7 @@ matvu render POSCAR --view auto -o figure.png
 matvu render POSCAR --view a --width 4 --dpi 600 -o figure.pdf
 matvu render POSCAR --style toon -o toon.png               # animation style
 matvu render POSCAR --style flat -o flat.png               # pure flat fill
+matvu render POSCAR --canvas 12 12 -o fig.png              # uniform scale across figures
 matvu render POSCAR --backend matplotlib -o preview.png   # fast preview
 matvu candidates POSCAR -n 12 -o candidates.png
 matvu info POSCAR

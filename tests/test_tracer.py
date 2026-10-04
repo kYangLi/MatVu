@@ -140,6 +140,65 @@ def test_flat_shading_uses_exact_colour():
     assert np.allclose(centre[:3], [0.1, 0.8, 0.1], atol=1e-3)
 
 
+def _dark_runs(row) -> list[int]:
+    runs: list[int] = []
+    current = 0
+    for value in row:
+        if value:
+            current += 1
+        elif current:
+            runs.append(current)
+            current = 0
+    if current:
+        runs.append(current)
+    return runs
+
+
+def _single_atom_scene(extra: float | None = None) -> Scene:
+    positions = [[0.0, 0.0, 0.0]]
+    if extra is not None:
+        positions.append([extra, 0.0, 0.0])
+    number = len(positions)
+    return Scene(
+        positions=np.array(positions),
+        symbols=["C"] * number,
+        radii=np.full(number, 0.4),
+        colours=np.tile([0.2, 0.2, 0.2], (number, 1)),
+        bonds=np.zeros((0, 2), dtype=int),
+        lattice=np.zeros((3, 3)),
+        pbc=(False, False, False),
+    )
+
+
+def test_fixed_canvas_keeps_atom_sizes_and_canvas_constant():
+    style = Style(
+        canvas=(8.0, 8.0),
+        width_in=2.0,
+        dpi=100,
+        supersample=1,
+        shading=False,
+        transparent=False,
+    )
+    view = View([0.0, 1.0, 0.0])
+    single = trace_image(_single_atom_scene(), view, style, supersample=1)
+    pair = trace_image(_single_atom_scene(3.0), view, style, supersample=1)
+    assert single.shape[:2] == pair.shape[:2] == (200, 200)
+    single_runs = _dark_runs(single[single.shape[0] // 2, :, 0] < 0.5)
+    pair_runs = _dark_runs(pair[pair.shape[0] // 2, :, 0] < 0.5)
+    assert len(single_runs) == 1
+    assert len(pair_runs) == 2
+    # identical atom diameter in pixels in both figures
+    assert abs(single_runs[0] - pair_runs[0]) <= 2
+    assert abs(pair_runs[0] - pair_runs[1]) <= 2
+
+
+def test_fixed_canvas_aspect():
+    style = Style(canvas=(8.0, 4.0), width_in=2.0, dpi=100, supersample=1)
+    view = View([0.0, 1.0, 0.0])
+    image = trace_image(_single_atom_scene(), view, style, supersample=1)
+    assert image.shape[:2] == (100, 200)
+
+
 def test_perspective_changes_the_image():
     lattice = np.zeros((3, 3))
     positions = np.array([[-1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.5]])

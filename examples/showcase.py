@@ -53,6 +53,14 @@ def main() -> int:
     parser.add_argument("--width", type=float, default=4.5)
     parser.add_argument("--cols", type=int, default=4)
     parser.add_argument("--style", default="3d", choices=["3d", "toon", "flat"])
+    parser.add_argument(
+        "--canvas",
+        nargs=2,
+        type=float,
+        default=[18.0, 18.0],
+        metavar=("W", "H"),
+        help="fixed view-plane size in Angstrom (0 0 disables)",
+    )
     args = parser.parse_args()
 
     tiles = TILES / args.style
@@ -61,6 +69,8 @@ def main() -> int:
     base_style.width_in = args.width
     base_style.dpi = args.dpi
     base_style.supersample = 2
+    if args.canvas[0] > 0 and args.canvas[1] > 0:
+        base_style.canvas = (args.canvas[0], args.canvas[1])
 
     rendered = []
     for case in CASES:

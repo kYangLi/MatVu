@@ -57,9 +57,10 @@ Early development, but already useful:
 - Mild perspective by default (`--perspective 0` for orthographic);
   layered 2D materials are automatically shown at a ~30 degree tilt while
   flat molecules keep their face-on view
-- Periodic boundary atoms are mirrored just outside the cell, so crystal
-  cells look complete on both sides and boundary bonds are drawn
-  (`--boundary-padding`, 0 disables)
+- Periodic boundaries are completed with the **first coordination shell**:
+  exactly the outside neighbours needed to avoid dangling bonds are added
+  (bond-free structures like bulk metals get a thin margin of mirror atoms
+  instead). No supercell blow-up, `--boundary-padding 0` disables it
 - POSCAR reader with a small plugin interface for future formats (CIF, XYZ, ...)
 - Ball-and-stick rendering with two backends:
   - `tracer` (default): an analytic ray-casting renderer in pure numpy with a

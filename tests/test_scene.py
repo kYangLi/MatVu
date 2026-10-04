@@ -42,6 +42,25 @@ def test_hydrogen_colour_is_visible():
         assert max(palettes.colour_rgb(name, "H")) < 0.9  # not invisible white
 
 
+def test_coordination_shell_is_completed():
+    scene = build_scene(load_structure(DATA / "Si.POSCAR"))
+    degrees = np.zeros(scene.n_atoms, dtype=int)
+    for i, j in scene.bonds:
+        degrees[i] += 1
+        degrees[j] += 1
+    assert scene.n_atoms > 8  # outside neighbours were added
+    assert np.all(degrees[:8] == 4)  # every core Si keeps its four bonds
+
+
+def test_nacl_coordination_is_complete():
+    scene = build_scene(load_structure(DATA / "NaCl.POSCAR"))
+    degrees = np.zeros(scene.n_atoms, dtype=int)
+    for i, j in scene.bonds:
+        degrees[i] += 1
+        degrees[j] += 1
+    assert np.all(degrees[:8] == 6)  # rocksalt: six neighbours per ion
+
+
 def test_metal_metal_bonds_are_skipped_by_default():
     scene = build_scene(load_structure(DATA / "Cu.POSCAR"))
     assert scene.n_bonds == 0

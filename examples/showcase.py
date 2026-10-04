@@ -31,9 +31,9 @@ TILES = OUTPUT / "showcase"
 # Metal-metal bonds are skipped by default (see Style.metal_metal_bonds), so
 # Cu renders as close-packed spheres and MoS2 keeps only Mo-S sticks.
 CASES: list[dict] = [
-    {"name": "si", "file": "Si.POSCAR", "supercell": (2, 2, 2), "title": "Si — diamond"},
-    {"name": "nacl", "file": "NaCl.POSCAR", "supercell": (2, 2, 2), "title": "NaCl — rocksalt"},
-    {"name": "zns", "file": "ZnS.POSCAR", "supercell": (2, 2, 2), "title": "ZnS — zincblende"},
+    {"name": "si", "file": "Si.POSCAR", "supercell": None, "title": "Si — diamond"},
+    {"name": "nacl", "file": "NaCl.POSCAR", "supercell": None, "title": "NaCl — rocksalt"},
+    {"name": "zns", "file": "ZnS.POSCAR", "supercell": None, "title": "ZnS — zincblende"},
     {"name": "cu", "file": "Cu.POSCAR", "supercell": None, "title": "Cu — fcc metal"},
     {
         "name": "mos2",

@@ -61,7 +61,8 @@ src/matvu/
     周期性边界镜像原子（`Style.boundary_padding`，默认 0.1）使晶胞两侧对称
   - matplotlib 后端：PNG/PDF/SVG 快速预览（球面 sprite + 深描边双色键）
   - 风格预设：`3d`（立体光照）、`toon`（动画赛璐珞：双色调阴影 + 描边）、`flat`（纯平涂 + 描边），
-    三者共用透视相机；`toon`/`flat` 带景深衰减；原子显示半径严格按共价半径等比（无最小值钳制）
+    三者共用透视相机；`toon`/`flat` 带景深衰减；原子显示半径严格按共价半径等比（无最小值钳制）。
+    **主推画风：`toon`（2026-10-04 用户确认）**
   - CLI：`matvu render` / `matvu info` / `matvu candidates`
 - 示例与演示：`examples/structures/`（Si、NaCl、graphene、water 四个算例）；
   `examples/out/` 有 4 张自动视角渲染图（被 gitignore，本地生成）。

@@ -52,7 +52,7 @@ def main() -> int:
     parser.add_argument("--dpi", type=int, default=200)
     parser.add_argument("--width", type=float, default=4.5)
     parser.add_argument("--cols", type=int, default=4)
-    parser.add_argument("--style", default="3d", choices=["3d", "flat"])
+    parser.add_argument("--style", default="3d", choices=["3d", "toon", "flat"])
     args = parser.parse_args()
 
     tiles = TILES / args.style

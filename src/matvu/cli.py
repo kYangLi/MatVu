@@ -53,8 +53,8 @@ def build_parser() -> argparse.ArgumentParser:
     render_parser.add_argument(
         "--style",
         default="3d",
-        choices=["3d", "flat"],
-        help="look preset: 3d (shaded) or flat (solid colours with outlines)",
+        choices=["3d", "toon", "flat"],
+        help="look preset: 3d (shaded) or toon (animation/cel style; flat is an alias)",
     )
     render_parser.add_argument("--atom-scale", type=float, default=None)
     render_parser.add_argument("--bond-radius", type=float, default=None)

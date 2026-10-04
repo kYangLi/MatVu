@@ -35,9 +35,11 @@ Early development, but already useful:
   for crystals (atoms spread out evenly; axis-aligned top-down views are
   avoided), a ~30 degree tilt for layered materials and face-on views for
   molecules
-- Two look presets: `3d` (shaded ball-and-stick with perspective) and `flat`
-  (2.5D flat design: solid colours, subtle directional shading, silhouette
-  outlines and an aerial-perspective depth fade): `matvu render --style flat`
+- Three look presets, all sharing the same automatic viewpoint and the
+  perspective camera: `3d` (shaded, default), `toon` (animation/cel style:
+  flat colours, two-tone shadow, outlines) and `flat` (pure flat fill with
+  outlines, no shading). `toon`/`flat` add an aerial-perspective depth fade.
+  Example: `matvu render --style toon`
 - Atom sizes are strictly proportional to covalent radii at a uniform scale
   (no forced minimum radius)
 - Unit cell frame drawn for 3D crystals only; molecular vacuum boxes and 2D
@@ -90,7 +92,8 @@ sheet to `examples/out/`.
 ```bash
 matvu render POSCAR --view auto -o figure.png
 matvu render POSCAR --view a --width 4 --dpi 600 -o figure.pdf
-matvu render POSCAR --style flat -o flat.png             # flat look
+matvu render POSCAR --style toon -o toon.png               # animation style
+matvu render POSCAR --style flat -o flat.png               # pure flat fill
 matvu render POSCAR --backend matplotlib -o preview.png   # fast preview
 matvu candidates POSCAR -n 12 -o candidates.png
 matvu info POSCAR

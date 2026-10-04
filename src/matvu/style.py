@@ -53,21 +53,32 @@ def style_preset(name: str = "3d") -> Style:
 
     ``"3d"``
         Shaded ball-and-stick with mild perspective (the default).
+    ``"toon"``
+        Animation/cel style: flat colours with a two-tone cel shadow and
+        silhouette outlines; the perspective camera is kept.
     ``"flat"``
-        Flat-design look with a 2.5D feel: solid colours, silhouette
-        outlines, a gentle directional shading (no highlights) and an
-        orbital depth cue that fades distant atoms towards the background.
+        Pure flat fill with silhouette outlines (no shading at all); the
+        perspective camera is kept.
     """
     key = str(name).lower()
     if key in ("3d", "default", "shaded"):
         return Style()
+    if key in ("toon", "cartoon", "anime", "cel"):
+        return Style(
+            shading=False,
+            ambient=0.72,  # shadow tone level of the cel shading
+            diffuse=0.0,
+            specular=0.0,
+            depth_cue=0.30,
+        )
     if key in ("flat", "2d"):
         return Style(
             shading=False,
-            ambient=0.70,
-            diffuse=0.38,
+            ambient=1.0,  # no shadow at all: pure flat fill
+            diffuse=0.0,
             specular=0.0,
-            perspective=0.0,
-            depth_cue=0.35,
+            depth_cue=0.30,
         )
-    raise ValueError(f"unknown style preset {name!r}; available: ['3d', 'flat']")
+    raise ValueError(
+        f"unknown style preset {name!r}; available: ['3d', 'toon', 'flat']"
+    )

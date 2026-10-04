@@ -75,17 +75,20 @@ def _shade(
     darker silhouette outline (flat-design look).
     """
     if not style.shading:
+        # Two-tone cel shading (animation style): a flat lit colour with a
+        # hard shadow band, a silhouette outline and no highlights.
         lambert = np.clip(normals @ key_light, 0.0, 1.0)
-        intensity = style.ambient + style.diffuse * lambert
+        band = np.clip((lambert - 0.35) / 0.10, 0.0, 1.0)
+        intensity = style.ambient + (1.0 - style.ambient) * band
         colour = base[None, None, :] * intensity[..., None]
         view_term = np.clip(np.einsum("...i,...i", normals, view), 0.0, 1.0)
         outline = np.clip((0.22 - view_term) / 0.22, 0.0, 1.0)
         outline_colour = base * 0.35
-        flat = (
+        cel = (
             colour * (1.0 - outline[..., None])
             + outline_colour[None, None, :] * outline[..., None]
         )
-        return np.clip(flat, 0.0, 1.0)
+        return np.clip(cel, 0.0, 1.0)
     lambert = np.clip(normals @ key_light, 0.0, 1.0)
     fill = np.clip(normals @ fill_light, 0.0, 1.0) * 0.12
     half = key_light + view

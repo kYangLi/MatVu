@@ -50,10 +50,17 @@ def test_cli_render(tmp_path, capsys):
 def test_style_presets():
     from matvu.style import style_preset
 
+    toon = style_preset("toon")
+    assert toon.shading is False
+    assert toon.perspective > 0.0  # keeps the perspective camera
+    assert toon.depth_cue > 0.0
+    assert 0.0 < toon.ambient < 1.0  # cel shadow tone
+
     flat = style_preset("flat")
     assert flat.shading is False
-    assert flat.perspective == 0.0
-    assert flat.depth_cue > 0.0
+    assert flat.perspective > 0.0  # perspective as well
+    assert flat.ambient == 1.0  # no shadow band at all
+
     shaded = style_preset("3d")
     assert shaded.shading is True
     assert shaded.perspective > 0.0

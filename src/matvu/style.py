@@ -23,6 +23,10 @@ class Style:
     draw_bonds: bool = True
     boundary_padding: float = 0.10  # fractional margin of mirrored boundary atoms
 
+    # colours
+    palette: str = "matvu"
+    palette_overrides: dict[str, str] | None = None  # per-element #RRGGBB overrides
+
     # cell frame
     draw_cell: bool = True
     cell_linewidth: float = 1.0  # in points, at the final image size

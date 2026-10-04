@@ -36,10 +36,10 @@ def test_atom_radii_strictly_follow_covalent_radii():
 
 
 def test_hydrogen_colour_is_visible():
-    from matvu import elements
+    from matvu import palettes
 
-    channels = elements.colour_rgb("H")
-    assert max(channels) < 0.9  # not pure white, otherwise invisible on white
+    for name in palettes.palette_names():
+        assert max(palettes.colour_rgb(name, "H")) < 0.9  # not invisible white
 
 
 def test_metal_metal_bonds_are_skipped_by_default():

@@ -10,9 +10,11 @@ from .backends import available_backends
 from .gallery import rank_candidates, render_candidate_sheet
 from .geometry import cell_params
 from .io import load_structure
+from .palettes import palette_names
 from .render import render, resolve_view
 from .scene import build_scene
 from .style import Style, style_preset
+from .theme import export_theme, load_theme
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -55,6 +57,17 @@ def build_parser() -> argparse.ArgumentParser:
         default="3d",
         choices=["3d", "toon", "flat"],
         help="look preset: 3d (shaded) or toon (animation/cel style; flat is an alias)",
+    )
+    render_parser.add_argument(
+        "--theme",
+        default=None,
+        help="built-in theme name or path to a .toml theme file",
+    )
+    render_parser.add_argument(
+        "--palette",
+        default=None,
+        choices=palette_names(),
+        help="quick palette switch (overrides the theme palette)",
     )
     render_parser.add_argument("--atom-scale", type=float, default=None)
     render_parser.add_argument("--bond-radius", type=float, default=None)
@@ -127,6 +140,17 @@ def build_parser() -> argparse.ArgumentParser:
         metavar=("NX", "NY", "NZ"),
     )
 
+    theme_parser = subcommands.add_parser(
+        "theme", help="list or export built-in themes"
+    )
+    theme_sub = theme_parser.add_subparsers(dest="theme_command", required=True)
+    theme_sub.add_parser("list", help="list built-in themes")
+    export_parser = theme_sub.add_parser(
+        "export", help="write a built-in theme as a TOML file you can edit"
+    )
+    export_parser.add_argument("name", choices=palette_names())
+    export_parser.add_argument("-o", "--output", default=None)
+
     return parser
 
 
@@ -139,6 +163,8 @@ def main(argv=None) -> int:
         return _cmd_info(args)
     if args.command == "candidates":
         return _cmd_candidates(args)
+    if args.command == "theme":
+        return _cmd_theme(args)
     parser.print_help()
     return 1
 
@@ -150,6 +176,10 @@ def _cmd_render(args) -> int:
         matplotlib.use("Agg")
 
     style = style_preset(args.style)
+    if args.theme is not None:
+        style = load_theme(args.theme, base=style).style
+    if args.palette is not None:
+        style.palette = args.palette
     if args.atom_scale is not None:
         style.atom_scale = args.atom_scale
     if args.bond_radius is not None:
@@ -234,6 +264,20 @@ def _cmd_candidates(args) -> int:
         )
     print(f"[matvu] wrote {path}")
     return 0
+
+
+def _cmd_theme(args) -> int:
+    if args.theme_command == "list":
+        print("Built-in themes (one per palette):")
+        for name in palette_names():
+            print(f"  {name}")
+        print("Use: matvu render POSCAR --theme NAME   (or a path/to/theme.toml)")
+        return 0
+    if args.theme_command == "export":
+        path = export_theme(args.name, args.output)
+        print(f"[matvu] wrote theme {path}")
+        return 0
+    return 1
 
 
 def _cmd_info(args) -> int:

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from . import elements
+from . import elements, palettes
 from .geometry import find_bonds, principal_axes
 from .structure import Structure, formula_from_symbols
 from .style import Style
@@ -240,7 +240,12 @@ def build_scene(structure: Structure, style: Style | None = None) -> Scene:
         np.array([elements.covalent_radius(s) for s in symbols]) * scale
     )
     radii = np.maximum(radii, style.min_atom_radius)
-    colours = np.array([elements.colour_rgb(s) for s in symbols])
+    colours = np.array(
+        [
+            palettes.colour_rgb(style.palette, symbol, style.palette_overrides)
+            for symbol in symbols
+        ]
+    )
     bond_array = np.asarray(bonds, dtype=int).reshape(-1, 2)
     return Scene(
         positions=positions,

@@ -23,6 +23,8 @@
 | `viewpoint.py` | 候选视角生成、评分、`auto` 搜索（项目核心算法） |
 | `gallery.py` | 候选视角排名与连拍图（评估 / 校准工具） |
 | `style.py` | 样式与预设（`3d` 立体光照 / `toon` 动画赛璐珞 / `flat` 纯平涂）、原子/键尺寸、光照、画布 |
+| `palettes.py` | 内置配色（`matvu` / `jmol` / `pastel`）与逐元素颜色解析 |
+| `theme.py` | 主题 TOML：配色 + 半径 + 样式覆盖；`load_theme` / `export_theme` |
 | `backends/` | 后端注册与实现：`base.py` 协议、`mpl.py` matplotlib |
 | `render.py` | 高层 API：`render()` / `auto_view()` / `resolve_view()` |
 | `cli.py` | `matvu render` / `matvu info` |

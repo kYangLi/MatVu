@@ -45,6 +45,9 @@ Early development, but already useful:
   light grey instead of pure white so it stays visible
 - Atom sizes are strictly proportional to covalent radii at a uniform scale
   (no forced minimum radius)
+- Three designed element palettes (`matvu`, `jmol`, `pastel`) with a
+  user-editable TOML theme format covering colours, radii and style
+  overrides — see [Themes](#themes)
 - Unit cell frame drawn for 3D crystals only; molecular vacuum boxes and 2D
   slab cells are detected automatically and skipped (`--no-cell` hides it)
 - Mild perspective by default (`--perspective 0` for orthographic);
@@ -89,6 +92,40 @@ pytest
 Renders every structure in `examples/structures/` with an automatically chosen
 viewpoint and the tracer backend, writing individual figures plus a contact
 sheet to `examples/out/`.
+
+## Themes
+
+Colours and sizes live in a **theme**: a small TOML file with a palette,
+atom radii and optional style overrides. Three carefully designed palettes
+ship with MatVu — `matvu` (default: modern, muted, family-coherent),
+`jmol` (classic CPK) and `pastel` (soft variant):
+
+```bash
+matvu render POSCAR --style toon --palette pastel -o fig.png
+matvu theme list
+matvu theme export matvu -o my-theme.toml     # full default theme to edit
+matvu render POSCAR --theme my-theme.toml -o fig.png
+```
+
+```toml
+name = "lab-theme"
+description = "our group colours"
+palette = "matvu"          # base palette: matvu | jmol | pastel
+
+[radii]
+atom_scale = 0.40          # display radius = covalent radius * scale
+min_radius = 0.0
+unbonded_scale = 0.45      # bond-free structures (bulk metals)
+bond_radius = 0.09
+bond_tolerance = 1.20
+
+[colors]                   # per-element overrides on top of the palette
+O = "#FF5A4A"
+Fe = "#B87333"
+```
+
+A `[style]` table can additionally set any `Style` field
+(`depth_cue`, `background`, `shading`, ...).
 
 ## Command line
 

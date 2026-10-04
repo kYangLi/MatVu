@@ -145,6 +145,16 @@ def colour_hex(symbol: str) -> str:
     return _data(symbol)[3]
 
 
+def all_colours() -> dict[str, str]:
+    """Every element colour in the table (used by the ``jmol`` palette)."""
+    return {symbol: data[3] for symbol, data in _ELEMENTS.items()}
+
+
+def symbols() -> list[str]:
+    """Symbols in the element table, roughly ordered by atomic number."""
+    return list(_ELEMENTS)
+
+
 @lru_cache(maxsize=None)
 def colour_rgb(symbol: str) -> tuple[float, float, float]:
     """Jmol CPK colour as three floats in [0, 1]."""

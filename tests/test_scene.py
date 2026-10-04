@@ -28,6 +28,13 @@ def test_slab_cells_have_no_frame():
     assert cell_corners(build_scene(graphene)) is None
 
 
+def test_atom_radii_strictly_follow_covalent_radii():
+    scene = build_scene(load_structure(DATA / "water.POSCAR"))
+    # O (0.66 A) and H (0.31 A) keep their exact ratio at the same scale.
+    assert scene.radii[0] == pytest.approx(0.40 * 0.66, rel=1e-9)
+    assert scene.radii[1] == pytest.approx(0.40 * 0.31, rel=1e-9)
+
+
 def test_metal_metal_bonds_are_skipped_by_default():
     scene = build_scene(load_structure(DATA / "Cu.POSCAR"))
     assert scene.n_bonds == 0

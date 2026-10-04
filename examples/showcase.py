@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 
 from matvu import auto_view, load_structure, render
 from matvu.scene import build_scene
-from matvu.style import Style
+from matvu.style import Style, style_preset
 
 ROOT = Path(__file__).resolve().parents[1]
 STRUCTURES = ROOT / "examples" / "structures"
@@ -52,10 +52,15 @@ def main() -> int:
     parser.add_argument("--dpi", type=int, default=200)
     parser.add_argument("--width", type=float, default=4.5)
     parser.add_argument("--cols", type=int, default=4)
+    parser.add_argument("--style", default="3d", choices=["3d", "flat"])
     args = parser.parse_args()
 
-    TILES.mkdir(parents=True, exist_ok=True)
-    base_style = Style(width_in=args.width, dpi=args.dpi, supersample=2)
+    tiles = TILES / args.style
+    tiles.mkdir(parents=True, exist_ok=True)
+    base_style = style_preset(args.style)
+    base_style.width_in = args.width
+    base_style.dpi = args.dpi
+    base_style.supersample = 2
 
     rendered = []
     for case in CASES:
@@ -63,7 +68,7 @@ def main() -> int:
         if case["supercell"] is not None:
             structure = structure.supercell(case["supercell"])
         view = auto_view(structure, style=base_style)
-        output = TILES / f"{case['name']}.png"
+        output = tiles / f"{case['name']}.png"
         render(structure, output=output, view=view, style=base_style)
         scene = build_scene(structure, base_style)
         azimuth, elevation = view.angles_deg()
@@ -75,11 +80,12 @@ def main() -> int:
             f"az {azimuth:6.1f} deg  el {elevation:5.1f} deg  -> {output.name}"
         )
 
-    compose(rendered, args.cols, base_style)
+    sheet_name = "showcase.png" if args.style == "3d" else f"showcase_{args.style}.png"
+    compose(rendered, args.cols, base_style, OUTPUT / sheet_name)
     return 0
 
 
-def compose(rendered, cols: int, style: Style) -> None:
+def compose(rendered, cols: int, style: Style, output) -> None:
     images = [plt.imread(item[2]) for item in rendered]
     count = len(rendered)
     rows = (count + cols - 1) // cols
@@ -129,7 +135,6 @@ def compose(rendered, cols: int, style: Style) -> None:
         va="center",
         fontsize=13,
     )
-    output = OUTPUT / "showcase.png"
     figure.savefig(output, dpi=style.dpi, facecolor="#ffffff")
     plt.close(figure)
     print(f"[showcase] contact sheet -> {output}")

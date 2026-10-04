@@ -69,7 +69,20 @@ def _shade(
     fill_light: np.ndarray,
     view: np.ndarray,
 ) -> np.ndarray:
-    """Lambert + Blinn-Phong shading; ``view`` points to the camera."""
+    """Lambert + Blinn-Phong shading; ``view`` points to the camera.
+
+    With ``style.shading`` disabled the surface is a flat colour with a
+    darker silhouette outline (flat-design look).
+    """
+    if not style.shading:
+        view_term = np.clip(np.einsum("...i,...i", normals, view), 0.0, 1.0)
+        outline = np.clip((0.25 - view_term) / 0.25, 0.0, 1.0)
+        dark = base * 0.4
+        flat = (
+            base[None, None, :] * (1.0 - outline[..., None])
+            + dark[None, None, :] * outline[..., None]
+        )
+        return np.clip(flat, 0.0, 1.0)
     lambert = np.clip(normals @ key_light, 0.0, 1.0)
     fill = np.clip(normals @ fill_light, 0.0, 1.0) * 0.12
     half = key_light + view
@@ -296,12 +309,13 @@ def trace_image(
         normals = (perpendicular + t_safe[..., None] * v) / radius
         write(row0, row1, col0, col1, t, valid, base, normals, -dirs, flat=flat)
 
+    bond_colours = colours if style.shading else colours * 0.8
     for i, j in scene.bonds:
         a = positions[i]
         b = positions[j]
         middle = 0.5 * (a + b)
-        put_cylinder(a, middle, style.bond_radius, colours[i])
-        put_cylinder(middle, b, style.bond_radius, colours[j])
+        put_cylinder(a, middle, style.bond_radius, bond_colours[i])
+        put_cylinder(middle, b, style.bond_radius, bond_colours[j])
 
     # Unit cell frame, drawn as thin unshaded sticks.
     if corners is not None:

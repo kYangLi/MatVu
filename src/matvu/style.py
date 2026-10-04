@@ -15,7 +15,7 @@ class Style:
 
     # atoms and bonds
     atom_scale: float = 0.40
-    min_atom_radius: float = 0.18
+    min_atom_radius: float = 0.0  # 0 = radii strictly proportional to atomic radii
     unbonded_atom_scale: float = 0.45  # used when the structure ends up with no bonds
     bond_radius: float = 0.09
     bond_tolerance: float = 1.20
@@ -45,3 +45,26 @@ class Style:
     width_in: float = 6.0
     dpi: int = 300
     perspective: float = 0.18  # 0 = orthographic, larger = stronger perspective
+
+
+def style_preset(name: str = "3d") -> Style:
+    """Named style presets.
+
+    ``"3d"``
+        Shaded ball-and-stick with mild perspective (the default).
+    ``"flat"``
+        Flat-design look: solid colours with silhouette outlines, no
+        gradients or highlights, orthographic camera.
+    """
+    key = str(name).lower()
+    if key in ("3d", "default", "shaded"):
+        return Style()
+    if key in ("flat", "2d"):
+        return Style(
+            shading=False,
+            ambient=1.0,
+            diffuse=0.0,
+            specular=0.0,
+            perspective=0.0,
+        )
+    raise ValueError(f"unknown style preset {name!r}; available: ['3d', 'flat']")

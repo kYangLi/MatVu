@@ -35,6 +35,10 @@ Early development, but already useful:
   for crystals (atoms spread out evenly; axis-aligned top-down views are
   avoided), a ~30 degree tilt for layered materials and face-on views for
   molecules
+- Two look presets: `3d` (shaded ball-and-stick) and `flat` (solid colours
+  with silhouette outlines, orthographic): `matvu render --style flat`
+- Atom sizes are strictly proportional to covalent radii at a uniform scale
+  (no forced minimum radius)
 - Unit cell frame drawn for 3D crystals only; molecular vacuum boxes and 2D
   slab cells are detected automatically and skipped (`--no-cell` hides it)
 - Mild perspective by default (`--perspective 0` for orthographic);
@@ -85,6 +89,7 @@ sheet to `examples/out/`.
 ```bash
 matvu render POSCAR --view auto -o figure.png
 matvu render POSCAR --view a --width 4 --dpi 600 -o figure.pdf
+matvu render POSCAR --style flat -o flat.png             # flat look
 matvu render POSCAR --backend matplotlib -o preview.png   # fast preview
 matvu candidates POSCAR -n 12 -o candidates.png
 matvu info POSCAR

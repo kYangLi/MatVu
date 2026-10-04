@@ -103,6 +103,17 @@ def test_cell_frame_is_drawn():
     assert not np.allclose(with_frame, without_frame)
 
 
+def test_flat_shading_uses_exact_colour():
+    view = View([0.0, 1.0, 0.0])
+    style = _flat_style()
+    style.shading = False
+    style.perspective = 0.0
+    image = trace_image(_scene(True), view, style, supersample=1)
+    height, width = image.shape[:2]
+    centre = image[height // 2, width // 2]
+    assert np.allclose(centre[:3], [0.1, 0.8, 0.1], atol=1e-3)
+
+
 def test_perspective_changes_the_image():
     lattice = np.zeros((3, 3))
     positions = np.array([[-1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.5]])

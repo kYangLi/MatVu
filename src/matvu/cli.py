@@ -12,7 +12,7 @@ from .geometry import cell_params
 from .io import load_structure
 from .render import render, resolve_view
 from .scene import build_scene
-from .style import Style
+from .style import Style, style_preset
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -49,6 +49,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         metavar=("NX", "NY", "NZ"),
         help="repeat the cell before rendering",
+    )
+    render_parser.add_argument(
+        "--style",
+        default="3d",
+        choices=["3d", "flat"],
+        help="look preset: 3d (shaded) or flat (solid colours with outlines)",
     )
     render_parser.add_argument("--atom-scale", type=float, default=None)
     render_parser.add_argument("--bond-radius", type=float, default=None)
@@ -139,7 +145,7 @@ def _cmd_render(args) -> int:
 
         matplotlib.use("Agg")
 
-    style = Style()
+    style = style_preset(args.style)
     if args.atom_scale is not None:
         style.atom_scale = args.atom_scale
     if args.bond_radius is not None:

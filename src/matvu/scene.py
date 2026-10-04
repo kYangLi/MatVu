@@ -212,6 +212,26 @@ def build_scene(structure: Structure, style: Style | None = None) -> Scene:
             for i, j in bonds
             if not (elements.is_metal(symbols[i]) and elements.is_metal(symbols[j]))
         ]
+    # Drop mirror images that ended up completely unbonded (their bonding
+    # partners would live further outside the margin); keep them for
+    # bond-free structures such as bulk metals.
+    if working.n_atoms > structure.n_atoms and bonds:
+        used = np.zeros(working.n_atoms, dtype=bool)
+        for i, j in bonds:
+            used[i] = used[j] = True
+        keep = used | (np.arange(working.n_atoms) < structure.n_atoms)
+        if not keep.all():
+            working = Structure(
+                working.lattice,
+                working.cart_coords[keep],
+                [s for s, k in zip(working.symbols, keep) if k],
+                working.pbc,
+                dict(working.info),
+            )
+            remap = np.cumsum(keep) - 1
+            bonds = [(int(remap[i]), int(remap[j])) for i, j in bonds]
+            positions = working.cart_coords - working.center
+            symbols = list(working.symbols)
     if bonds or structure.n_atoms <= 1:
         scale = style.atom_scale
     else:

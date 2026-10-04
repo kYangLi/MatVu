@@ -47,6 +47,32 @@ def test_cli_render(tmp_path, capsys):
     assert (tmp_path / "cli.png").exists()
 
 
+def test_style_presets():
+    from matvu.style import style_preset
+
+    flat = style_preset("flat")
+    assert flat.shading is False
+    assert flat.perspective == 0.0
+    shaded = style_preset("3d")
+    assert shaded.shading is True
+    assert shaded.perspective > 0.0
+
+
+def test_cli_render_flat_style(tmp_path):
+    code = main(
+        [
+            "render",
+            str(DATA / "water.POSCAR"),
+            "-o",
+            str(tmp_path / "flat.png"),
+            "--style",
+            "flat",
+        ]
+    )
+    assert code == 0
+    assert (tmp_path / "flat.png").exists()
+
+
 def test_cli_info(capsys):
     assert main(["info", str(DATA / "NaCl.POSCAR")]) == 0
     captured = capsys.readouterr().out

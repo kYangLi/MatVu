@@ -22,7 +22,7 @@
 | `scene.py` | 由 `Structure` 构建可渲染 `Scene`；正交投影 `project()` |
 | `viewpoint.py` | 候选视角生成、评分、`auto` 搜索（项目核心算法） |
 | `gallery.py` | 候选视角排名与连拍图（评估 / 校准工具） |
-| `style.py` | 渲染样式（原子/键尺寸、光照、画布、输出参数） |
+| `style.py` | 样式与预设（`3d` 立体 / `flat` 平面）、原子/键尺寸、光照、画布 |
 | `backends/` | 后端注册与实现：`base.py` 协议、`mpl.py` matplotlib |
 | `render.py` | 高层 API：`render()` / `auto_view()` / `resolve_view()` |
 | `cli.py` | `matvu render` / `matvu info` |
@@ -53,6 +53,7 @@
 - 正交投影；评分暂未利用对称性与背景原子；每个候选 O(N²)，大体系需换 KD-tree。
 - 周期性边界默认补出一层镜像原子（`Style.boundary_padding`，默认 0.1 个分数坐标），使晶胞两侧对称、跨边界键多数可随之补全；`0` 可关闭。更远距离的键补全（自适应 margin、"部分键"、虚线）仍是后续工作；展示更多晶胞仍可用 `--supercell NX NY NZ`。
 - 默认不画金属–金属键，纯金属结构自动使用清晰分离的晶格球半径（`Style.metal_metal_bonds` / `--metal-bonds` 可开启成键；`Style.unbonded_atom_scale` 可调球径）。
+- 原子显示半径严格按共价半径等比缩放（`Style.atom_scale`，无键结构用 `unbonded_atom_scale`），默认没有最小值钳制，保证不同元素之间的相对大小正确。
 
 ## 后端矩阵
 

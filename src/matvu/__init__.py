@@ -15,7 +15,7 @@ from .gallery import rank_candidates, render_candidates
 from .io import available_formats, load_structure, register_reader
 from .render import auto_view, render, resolve_view
 from .structure import Structure
-from .style import Style
+from .style import Style, style_preset
 from .viewpoint import View, pick_view
 from .viewpoint import score as score_view
 
@@ -36,4 +36,5 @@ __all__ = [
     "render_candidates",
     "resolve_view",
     "score_view",
+    "style_preset",
 ]

@@ -65,8 +65,8 @@ src/matvu/
     **主推画风：`toon`（2026-10-04 用户确认）**
   - 主题系统：TOML 主题（配色 + 半径 + 样式覆盖），三套官方配色（`matvu` 默认 / `jmol` / `pastel`），
     `--theme/--palette` 与 `matvu theme list/export`
-  - 固定画布 / 统一比例：`--canvas W H`（Å），跨图原子像素大小一致、结构按真实相对大小呈现；
-    画布为最小尺寸，内容超出时自动扩展（比例尺不变、不裁剪）；
+  - 固定画布 / 统一比例（可选）：`--canvas W H`（Å），跨图原子像素大小一致、结构按真实相对大小呈现；
+    画布为最小尺寸，内容超出时自动扩展（比例尺不变、不裁剪）；默认无画布、每张图自适应结构大小；
     晶体自动视角限制在舒适仰角带（10°–60°，不仰视、不过陡俯视）
   - CLI：`matvu render` / `matvu info` / `matvu candidates`
 - 示例与演示：`examples/structures/`（Si、NaCl、graphene、water 四个算例）；

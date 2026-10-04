@@ -12,6 +12,7 @@ Usage::
 from __future__ import annotations
 
 import argparse
+from dataclasses import replace
 from pathlib import Path
 
 import matplotlib
@@ -30,18 +31,22 @@ TILES = OUTPUT / "showcase"
 
 # Metal-metal bonds are skipped by default (see Style.metal_metal_bonds), so
 # Cu renders as close-packed spheres and MoS2 keeps only Mo-S sticks.
+# Crystals share a common canvas (they are of similar extent, so a uniform
+# scale keeps their relative sizes readable); molecules are auto-fitted so
+# they fill their tile. Pass --canvas W H to force one canvas for everything.
 CASES: list[dict] = [
-    {"name": "si", "file": "Si.POSCAR", "supercell": None, "title": "Si — diamond"},
-    {"name": "nacl", "file": "NaCl.POSCAR", "supercell": None, "title": "NaCl — rocksalt"},
-    {"name": "zns", "file": "ZnS.POSCAR", "supercell": None, "title": "ZnS — zincblende"},
-    {"name": "cu", "file": "Cu.POSCAR", "supercell": None, "title": "Cu — fcc metal"},
+    {"name": "si", "file": "Si.POSCAR", "supercell": None, "title": "Si — diamond", "canvas": (18.0, 18.0)},
+    {"name": "nacl", "file": "NaCl.POSCAR", "supercell": None, "title": "NaCl — rocksalt", "canvas": (18.0, 18.0)},
+    {"name": "zns", "file": "ZnS.POSCAR", "supercell": None, "title": "ZnS — zincblende", "canvas": (18.0, 18.0)},
+    {"name": "cu", "file": "Cu.POSCAR", "supercell": None, "title": "Cu — fcc metal", "canvas": (18.0, 18.0)},
     {
         "name": "mos2",
         "file": "MoS2.POSCAR",
         "supercell": (3, 3, 1),
         "title": "MoS2 — monolayer",
+        "canvas": (18.0, 18.0),
     },
-    {"name": "graphene", "file": "graphene.POSCAR", "supercell": (3, 3, 1), "title": "graphene — 2D"},
+    {"name": "graphene", "file": "graphene.POSCAR", "supercell": (3, 3, 1), "title": "graphene — 2D", "canvas": (18.0, 18.0)},
     {"name": "benzene", "file": "benzene.POSCAR", "supercell": None, "title": "C6H6 — molecule"},
     {"name": "water", "file": "water.POSCAR", "supercell": None, "title": "H2O — molecule"},
 ]
@@ -57,9 +62,9 @@ def main() -> int:
         "--canvas",
         nargs=2,
         type=float,
-        default=[18.0, 18.0],
+        default=None,
         metavar=("W", "H"),
-        help="fixed view-plane size in Angstrom (0 0 disables)",
+        help="force one view-plane size in Angstrom for every case (default: per-case settings)",
     )
     args = parser.parse_args()
 
@@ -69,18 +74,21 @@ def main() -> int:
     base_style.width_in = args.width
     base_style.dpi = args.dpi
     base_style.supersample = 2
-    if args.canvas[0] > 0 and args.canvas[1] > 0:
-        base_style.canvas = (args.canvas[0], args.canvas[1])
 
     rendered = []
     for case in CASES:
+        style = base_style
+        if args.canvas is not None:
+            style = replace(base_style, canvas=(args.canvas[0], args.canvas[1]))
+        elif case.get("canvas") is not None:
+            style = replace(base_style, canvas=case["canvas"])
         structure = load_structure(STRUCTURES / case["file"])
         if case["supercell"] is not None:
             structure = structure.supercell(case["supercell"])
-        view = auto_view(structure, style=base_style)
+        view = auto_view(structure, style=style)
         output = tiles / f"{case['name']}.png"
-        render(structure, output=output, view=view, style=base_style)
-        scene = build_scene(structure, base_style)
+        render(structure, output=output, view=view, style=style)
+        scene = build_scene(structure, style)
         azimuth, elevation = view.angles_deg()
         rendered.append(
             (case["title"], scene.formula, output, azimuth, elevation)

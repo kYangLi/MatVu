@@ -31,10 +31,12 @@ Early development, but already useful:
 - Sensible defaults for metals: metal-metal bonds are skipped and bulk metals
   render as a clear lattice of distinct spheres (`--metal-bonds` re-enables
   the sticks)
-- Fixed-canvas option for a uniform scale: `--canvas W H` (Angstrom, also
-  `Style.canvas`) keeps the canvas and atom size identical across figures.
-  The canvas is a *minimum* size — if a structure does not fit, the image
-  expands instead of clipping (the scale stays the same)
+- Fixed-canvas option for a uniform-scale series: `--canvas W H` (Angstrom,
+  also `Style.canvas`) keeps the canvas and atom size identical across
+  figures; the canvas is a *minimum* size, so oversized structures expand the
+  image instead of clipping (scale preserved). By default there is no canvas:
+  every figure is fitted to its own structure, so small molecules are shown
+  large enough to read
 - Automatic viewpoint selection uses a maximin projected-dispersion criterion
   for crystals (atoms spread out evenly; views stay in a comfortable
   above-horizon elevation band, neither looking up nor steep top-down), a

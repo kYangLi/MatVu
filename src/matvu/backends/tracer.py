@@ -380,14 +380,26 @@ def _save_image(image: np.ndarray, output: Path, style: Style):
     import matplotlib.pyplot as plt
 
     image = np.clip(image, 0.0, 1.0)
-    if output.suffix.lower() in (".png", ".jpg", ".jpeg", ".tif", ".tiff", ".webp", ".bmp"):
+    suffix = output.suffix.lower()
+    if suffix in (".png", ".tif", ".tiff", ".webp"):
         plt.imsave(output, image)
+        return output
+    if suffix in (".jpg", ".jpeg", ".bmp"):
+        # Formats without alpha: composite over the background colour.
+        alpha = image[..., 3:4]
+        flat = image[..., :3] * alpha + _rgb(style.background) * (1.0 - alpha)
+        plt.imsave(output, np.clip(flat, 0.0, 1.0))
         return output
     height, width = image.shape[:2]
     figure = plt.figure(figsize=(width / style.dpi, height / style.dpi), dpi=style.dpi)
     axes = figure.add_axes((0.0, 0.0, 1.0, 1.0))
     axes.set_axis_off()
     axes.imshow(image, interpolation="nearest")
-    figure.savefig(output, dpi=style.dpi)
+    figure.savefig(
+        output,
+        dpi=style.dpi,
+        transparent=style.transparent,
+        facecolor=style.background,
+    )
     plt.close(figure)
     return output

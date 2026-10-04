@@ -40,6 +40,9 @@ Early development, but already useful:
   flat colours, two-tone shadow, outlines) and `flat` (pure flat fill with
   outlines, no shading). `toon`/`flat` add an aerial-perspective depth fade.
   Example: `matvu render --style toon`
+- Transparent background by default (PNG/TIFF/WebP with alpha, PDF/SVG
+  transparent too); `--opaque` restores a white background. Hydrogen uses a
+  light grey instead of pure white so it stays visible
 - Atom sizes are strictly proportional to covalent radii at a uniform scale
   (no forced minimum radius)
 - Unit cell frame drawn for 3D crystals only; molecular vacuum boxes and 2D

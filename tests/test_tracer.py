@@ -70,9 +70,11 @@ def test_tracer_bond_visible_between_atoms():
     assert min(centre[0], centre[2]) < 0.2  # clearly one bond colour, not white
 
 
-def test_tracer_background_is_opaque_white():
+def test_tracer_opaque_background_can_be_requested():
     view = View([0.0, 1.0, 0.0])
-    image = trace_image(_scene(False), view, _flat_style(), supersample=1)
+    style = _flat_style()
+    style.transparent = False
+    image = trace_image(_scene(False), view, style, supersample=1)
     corner = image[2, 2]
     assert np.allclose(corner[:3], 1.0, atol=1e-3)
     assert corner[3] == 1.0
@@ -86,6 +88,15 @@ def test_tracer_transparent_background():
     corner = image[2, 2]
     assert corner[3] == 0.0
     assert image.shape[2] == 4
+
+
+def test_default_style_is_transparent():
+    from matvu.style import Style
+
+    default_style = Style()
+    view = View([0.0, 1.0, 0.0])
+    image = trace_image(_scene(False), view, default_style, supersample=1)
+    assert image[2, 2, 3] == 0.0
 
 
 def test_cell_frame_is_drawn():

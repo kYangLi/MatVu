@@ -14,7 +14,7 @@ from functools import lru_cache
 
 # symbol -> (atomic_mass, covalent_radius, vdw_radius, colour)
 _ELEMENTS: dict[str, tuple[float, float, float, str]] = {
-    "H": (1.008, 0.31, 1.20, "#FFFFFF"),
+    "H": (1.008, 0.31, 1.20, "#CCCCCC"),
     "He": (4.003, 0.28, 1.40, "#D9FFFF"),
     "Li": (6.94, 1.28, 1.82, "#CC80FF"),
     "Be": (9.012, 0.96, 1.53, "#C2FF00"),

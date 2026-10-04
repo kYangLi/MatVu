@@ -40,7 +40,7 @@ class Style:
 
     # canvas
     background: str = "white"
-    transparent: bool = False
+    transparent: bool = True  # transparent PNG/PDF/SVG by default
     margin: float = 0.06
     width_in: float = 6.0
     dpi: int = 300

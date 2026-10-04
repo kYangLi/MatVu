@@ -60,7 +60,11 @@ def build_parser() -> argparse.ArgumentParser:
     render_parser.add_argument("--bond-radius", type=float, default=None)
     render_parser.add_argument("--width", type=float, default=None, help="figure width in inches")
     render_parser.add_argument("--dpi", type=int, default=None)
-    render_parser.add_argument("--transparent", action="store_true")
+    render_parser.add_argument(
+        "--opaque",
+        action="store_true",
+        help="opaque background (default: transparent)",
+    )
     render_parser.add_argument("--no-bonds", action="store_true")
     render_parser.add_argument(
         "--metal-bonds",
@@ -154,8 +158,8 @@ def _cmd_render(args) -> int:
         style.width_in = args.width
     if args.dpi is not None:
         style.dpi = args.dpi
-    if args.transparent:
-        style.transparent = True
+    if args.opaque:
+        style.transparent = False
     if args.no_bonds:
         style.draw_bonds = False
     if args.metal_bonds:

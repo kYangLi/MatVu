@@ -35,6 +35,13 @@ def test_atom_radii_strictly_follow_covalent_radii():
     assert scene.radii[1] == pytest.approx(0.40 * 0.31, rel=1e-9)
 
 
+def test_hydrogen_colour_is_visible():
+    from matvu import elements
+
+    channels = elements.colour_rgb("H")
+    assert max(channels) < 0.9  # not pure white, otherwise invisible on white
+
+
 def test_metal_metal_bonds_are_skipped_by_default():
     scene = build_scene(load_structure(DATA / "Cu.POSCAR"))
     assert scene.n_bonds == 0

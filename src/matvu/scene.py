@@ -148,61 +148,13 @@ class Projection:
     basis: np.ndarray
 
 
-def _coordination_images(structure: Structure, *, tolerance: float, metal_metal: bool):
-    """Outside images needed to complete the first coordination shell.
+def _boundary_images(structure: Structure, margin: float) -> Structure:
+    """Mirror boundary atoms into a thin margin outside the cell.
 
-    For every core atom, neighbours that live in the neighbouring cells are
-    looked up (minimum-image distances) and their images are added, so the
-    displayed fragment has no dangling bonds. Images that would only bond to
-    other images (second shell and beyond) are not added.
-    """
-    fractional = structure.frac_coords
-    core = structure.cart_coords
-    symbols = structure.symbols
-    radii = np.array([elements.covalent_radius(s) for s in symbols])
-    metals = np.array([elements.is_metal(s) for s in symbols])
-    seen = {tuple(np.round(position, 6)) for position in core}
-    positions: list[np.ndarray] = []
-    image_symbols: list[str] = []
-    for shift in itertools.product((-1.0, 0.0, 1.0), repeat=3):
-        if shift == (0.0, 0.0, 0.0):
-            continue
-        shifted = fractional + np.asarray(shift)
-        cartesian = shifted @ structure.lattice
-        distances = np.linalg.norm(
-            core[:, None, :] - cartesian[None, :, :], axis=-1
-        )
-        cutoffs = tolerance * (radii[:, None] + radii[None, :])
-        bonded = distances < cutoffs
-        if not metal_metal:
-            bonded &= ~(metals[:, None] & metals[None, :])
-        if not bonded.any():
-            continue
-        for index in np.unique(np.where(bonded)[1]):
-            key = tuple(np.round(cartesian[index], 6))
-            if key in seen:
-                continue
-            seen.add(key)
-            positions.append(cartesian[index])
-            image_symbols.append(symbols[index])
-    if not positions:
-        return None, None
-    return np.asarray(positions), image_symbols
-
-
-def _boundary_images(
-    structure: Structure,
-    margin: float,
-    *,
-    tolerance: float = 1.20,
-    metal_metal: bool = False,
-) -> Structure:
-    """Complete periodic boundaries of the displayed cell.
-
-    Bonded structures receive exactly their first coordination shell outside
-    the cell (no dangling bonds, no supercell blow-up). Bond-free structures
-    (bulk metals) receive a thin margin of mirror atoms instead. Images that
-    coincide with existing atoms are dropped.
+    Atoms sitting on (or close to) the cell faces get their periodic copies on
+    the opposite faces, so the cell looks symmetric and complete (the classic
+    VESTA-style figure). Copies that end up isolated are dropped later by
+    :func:`build_scene`. ``margin = 0`` disables the decoration.
     """
     if margin <= 0.0 or structure.n_atoms == 0:
         return structure
@@ -212,19 +164,7 @@ def _boundary_images(
     if _spans_like_molecule(fractional):
         return structure  # molecular vacuum box
 
-    core = structure.cart_coords
-    completion, completion_symbols = _coordination_images(
-        structure, tolerance=tolerance, metal_metal=metal_metal
-    )
-    if completion is not None:
-        new_cart = np.vstack([core, completion])
-        new_symbols = list(structure.symbols) + completion_symbols
-        return Structure(
-            structure.lattice, new_cart, new_symbols, structure.pbc, dict(structure.info)
-        )
-
-    # Bond-free structures: a thin shell of mirror atoms decorates the faces.
-    existing = core
+    existing = structure.cart_coords
     kept_blocks = [existing]
     images: list[np.ndarray] = []
     symbols: list[str] = []
@@ -263,12 +203,7 @@ def build_scene(structure: Structure, style: Style | None = None) -> Scene:
     (clear lattice spheres, useful for bulk metals).
     """
     style = style or Style()
-    working = _boundary_images(
-        structure,
-        style.boundary_padding,
-        tolerance=style.bond_tolerance,
-        metal_metal=style.metal_metal_bonds,
-    )
+    working = _boundary_images(structure, style.boundary_padding)
     positions = working.cart_coords - working.center
     symbols = list(working.symbols)
     bonds = find_bonds(working, tolerance=style.bond_tolerance)

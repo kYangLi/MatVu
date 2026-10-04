@@ -90,6 +90,20 @@ def test_graphene_auto_view_is_tilted():
     assert 10.0 < angle < 65.0
 
 
+def test_cubic_crystals_share_one_view():
+    from pathlib import Path
+
+    from matvu import load_structure
+
+    data = Path(__file__).resolve().parents[1] / "examples" / "structures"
+    views = []
+    for name in ("Si.POSCAR", "NaCl.POSCAR", "ZnS.POSCAR", "Cu.POSCAR"):
+        scene = build_scene(load_structure(data / name))
+        views.append(pick_view(scene, seed=0).direction)
+    for direction in views[1:]:
+        assert np.allclose(direction, views[0], atol=1e-9)
+
+
 def test_crystal_views_stay_in_comfortable_band():
     from pathlib import Path
 
@@ -114,16 +128,23 @@ def test_auto_views_look_from_above():
         assert view.angles_deg()[1] >= 0.0, name
 
 
-def test_dispersion_drives_crystal_views():
+def test_dispersion_drives_non_cubic_crystal_views():
     from pathlib import Path
 
     from matvu import load_structure
 
     data = Path(__file__).resolve().parents[1] / "examples" / "structures"
-    scene = build_scene(load_structure(data / "Cu.POSCAR").supercell((2, 2, 2)))
-    axis = projected_dispersion(scene, View([0.0, 0.0, 1.0]))
-    assert axis < 1e-9  # fcc columns coincide when looking along the c axis
+    base = load_structure(data / "Cu.POSCAR")
+
+    # fcc columns coincide when looking along the cubic c axis
+    cubic_scene = build_scene(base.supercell((2, 2, 2)))
+    assert projected_dispersion(cubic_scene, View([0.0, 0.0, 1.0])) < 1e-9
+
+    # a tetragonal distortion breaks the cubic convention; there the maximin
+    # dispersion drives the viewpoint choice
+    tetragonal = Structure(
+        np.diag([3.615, 3.615, 5.4]), base.cart_coords, base.symbols
+    )
+    scene = build_scene(tetragonal)
     view = pick_view(scene, seed=0)
-    chosen = projected_dispersion(scene, view)
-    assert chosen > 0.25
-    assert chosen > axis + 0.2
+    assert projected_dispersion(scene, view) > 0.2

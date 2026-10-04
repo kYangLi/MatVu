@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from . import elements
-from .geometry import principal_axes, view_basis
+from .geometry import cell_params, principal_axes, view_basis
 from .scene import Scene, molecular_box, project, slab_normal
 
 # Penalty weights (must sum to 1).
@@ -99,6 +99,35 @@ def candidate_views(scene: Scene, *, n_surface: int = 240) -> list[View]:
 
 
 SLAB_TILT_DEG = 32.0
+
+# Shared three-quarter view for cubic lattices, in lattice coordinates. The
+# classic [111] isometric direction has exact overlaps for fcc/diamond/
+# rocksalt cells; (1, 1, 0.6) keeps the symmetric azimuth while avoiding them.
+CUBIC_VIEW_LATTICE = (1.0, 1.0, 0.6)
+
+
+def cubic_view(
+    scene: Scene, *, length_tol: float = 0.01, angle_tol: float = 1.0
+) -> View | None:
+    """The single shared viewpoint for cubic lattices, or ``None``.
+
+    Depends only on the lattice, so every cubic crystal is shown from the
+    same angle regardless of its elements.
+    """
+    if scene.lattice is None or abs(np.linalg.det(scene.lattice)) < 1e-9:
+        return None
+    params = cell_params(scene.lattice)
+    lengths = (params["a"], params["b"], params["c"])
+    if max(lengths) / max(min(lengths), 1e-12) - 1.0 > length_tol:
+        return None
+    for key in ("alpha", "beta", "gamma"):
+        if abs(params[key] - 90.0) > angle_tol:
+            return None
+    return View(
+        CUBIC_VIEW_LATTICE[0] * scene.lattice[0]
+        + CUBIC_VIEW_LATTICE[1] * scene.lattice[1]
+        + CUBIC_VIEW_LATTICE[2] * scene.lattice[2]
+    )
 
 
 def projected_dispersion(scene: Scene, view: View) -> float:
@@ -255,6 +284,13 @@ def pick_view(
     rng = np.random.default_rng(seed)
     candidates = candidate_views(scene, n_surface=n_surface)
     scores = [score(scene, view)["score"] for view in candidates]
+
+    # Shared convention: every cubic crystal gets the same fixed viewpoint
+    # (no refinement, since refinement depends on the contents).
+    if slab_normal(scene) is None and not molecular_box(scene):
+        cubic = cubic_view(scene)
+        if cubic is not None:
+            return cubic
 
     # Prefer bird's-eye views: use only above-horizon candidates when any
     # exist (looking down at the structure reads more naturally than looking

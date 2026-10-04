@@ -37,6 +37,9 @@ Early development, but already useful:
   image instead of clipping (scale preserved). By default there is no canvas:
   every figure is fitted to its own structure, so small molecules are shown
   large enough to read
+- All cubic crystals automatically share one fixed three-quarter viewpoint
+  (az 45°, el 23° relative to their lattice), so a series of cubic structures
+  is rendered from exactly the same angle
 - Automatic viewpoint selection uses a maximin projected-dispersion criterion
   for crystals (atoms spread out evenly; views stay in a comfortable
   above-horizon elevation band, neither looking up nor steep top-down), a

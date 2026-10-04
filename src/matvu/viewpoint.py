@@ -256,7 +256,17 @@ def pick_view(
     candidates = candidate_views(scene, n_surface=n_surface)
     scores = [score(scene, view)["score"] for view in candidates]
 
-    best_index = int(np.argmax(scores))
+    # Prefer bird's-eye views: use only above-horizon candidates when any
+    # exist (looking down at the structure reads more naturally than looking
+    # up at it).
+    upright = [
+        index
+        for index, candidate in enumerate(candidates)
+        if candidate.angles_deg()[1] >= 5.0
+    ]
+    pool = upright if upright else list(range(len(candidates)))
+
+    best_index = max(pool, key=lambda index: scores[index])
     best_score = scores[best_index]
 
     # Aesthetic selection among the near-best candidates.
@@ -275,6 +285,11 @@ def pick_view(
 
     def aesthetically_ok(direction: np.ndarray) -> bool:
         """Keep refined views inside the same aesthetic region as the pick."""
+        elevation = float(
+            np.degrees(np.arcsin(np.clip(direction[2], -1.0, 1.0)))
+        )
+        if elevation < 0.0:
+            return False
         if normal is not None:
             slant = float(
                 np.degrees(
@@ -289,7 +304,7 @@ def pick_view(
         return True
 
     if normal is not None:
-        top = [i for i, value in enumerate(scores) if value >= best_score - 0.02]
+        top = [i for i in pool if scores[i] >= best_score - 0.02]
         angles = [
             float(
                 np.degrees(
@@ -305,7 +320,7 @@ def pick_view(
     elif is_molecule:
         specials = special_directions(scene)
         if specials:
-            top = [i for i, value in enumerate(scores) if value >= best_score - 0.01]
+            top = [i for i in pool if scores[i] >= best_score - 0.01]
             alignment = [
                 max(abs(float(candidates[i].direction @ s)) for s in specials)
                 for i in top
@@ -313,7 +328,7 @@ def pick_view(
             best_index = top[int(np.argmax(alignment))]
             best_score = scores[best_index]
     else:
-        top = [i for i, value in enumerate(scores) if value >= best_score - 0.02]
+        top = [i for i in pool if scores[i] >= best_score - 0.02]
         # Avoid "weird top-down" views: drop candidates nearly parallel to a
         # lattice vector when there are off-axis alternatives.
         if lattice_directions:

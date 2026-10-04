@@ -90,6 +90,18 @@ def test_graphene_auto_view_is_tilted():
     assert 10.0 < angle < 65.0
 
 
+def test_auto_views_look_from_above():
+    from pathlib import Path
+
+    from matvu import load_structure
+
+    data = Path(__file__).resolve().parents[1] / "examples" / "structures"
+    for name in ("Si.POSCAR", "NaCl.POSCAR", "Cu.POSCAR", "graphene.POSCAR"):
+        scene = build_scene(load_structure(data / name))
+        view = pick_view(scene, seed=0)
+        assert view.angles_deg()[1] >= 0.0, name
+
+
 def test_dispersion_drives_crystal_views():
     from pathlib import Path
 

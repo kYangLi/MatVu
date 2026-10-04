@@ -113,12 +113,16 @@ class MatplotlibBackend(Backend):
         pad = np.maximum(upper - lower, 1e-9) * style.margin + 1e-9
         lower = lower - pad
         upper = upper + pad
+        nominal_width: float | None = None
         if style.canvas is not None:
             canvas_width, canvas_height = (float(value) for value in style.canvas)
             centre_x = 0.5 * (float(lower[0]) + float(upper[0]))
             centre_y = 0.5 * (float(lower[1]) + float(upper[1]))
-            x0, x1 = centre_x - canvas_width / 2.0, centre_x + canvas_width / 2.0
-            y0, y1 = centre_y - canvas_height / 2.0, centre_y + canvas_height / 2.0
+            used_width = max(canvas_width, float(upper[0] - lower[0]))
+            used_height = max(canvas_height, float(upper[1] - lower[1]))
+            x0, x1 = centre_x - used_width / 2.0, centre_x + used_width / 2.0
+            y0, y1 = centre_y - used_height / 2.0, centre_y + used_height / 2.0
+            nominal_width = canvas_width
         else:
             x0, x1 = float(lower[0]), float(upper[0])
             y0, y1 = float(lower[1]), float(upper[1])
@@ -126,7 +130,13 @@ class MatplotlibBackend(Backend):
         y_span = max(y1 - y0, 1e-9)
 
         width_in = float(style.width_in)
-        height_in = width_in * y_span / x_span
+        if nominal_width is not None:
+            # Same scale as the nominal canvas: the figure grows instead.
+            scale_in_per_unit = width_in / nominal_width
+            width_in = x_span * scale_in_per_unit
+            height_in = y_span * scale_in_per_unit
+        else:
+            height_in = width_in * y_span / x_span
         figure = plt.figure(figsize=(width_in, height_in), dpi=style.dpi)
         figure.patch.set_facecolor(style.background)
         axes = figure.add_axes((0.0, 0.0, 1.0, 1.0))

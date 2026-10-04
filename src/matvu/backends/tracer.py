@@ -201,19 +201,41 @@ def trace_image(
     pad = np.maximum(upper - lower, 1e-6) * style.margin
     lower = lower - pad
     upper = upper + pad
+    nominal_width: float | None = None
+    nominal_height: float | None = None
     if style.canvas is not None:
         canvas_width, canvas_height = (float(value) for value in style.canvas)
         centre_x = 0.5 * (float(lower[0]) + float(upper[0]))
         centre_y = 0.5 * (float(lower[1]) + float(upper[1]))
-        x0, x1 = centre_x - canvas_width / 2.0, centre_x + canvas_width / 2.0
-        y0, y1 = centre_y - canvas_height / 2.0, centre_y + canvas_height / 2.0
+        # The canvas is a minimum size: if the structure does not fit, the
+        # canvas expands (same scale, nothing is clipped).
+        used_width = max(canvas_width, float(upper[0] - lower[0]))
+        used_height = max(canvas_height, float(upper[1] - lower[1]))
+        x0, x1 = centre_x - used_width / 2.0, centre_x + used_width / 2.0
+        y0, y1 = centre_y - used_height / 2.0, centre_y + used_height / 2.0
+        nominal_width, nominal_height = canvas_width, canvas_height
     else:
         x0, y0 = float(lower[0]), float(lower[1])
         x1, y1 = float(upper[0]), float(upper[1])
 
-    final_width = int(width_px) if width_px else max(4, int(round(style.width_in * style.dpi)))
-    aspect = (y1 - y0) / max(x1 - x0, 1e-9)
-    final_height = int(height_px) if height_px else max(4, int(round(final_width * aspect)))
+    if width_px is not None:
+        final_width = int(width_px)
+        final_height = (
+            int(height_px)
+            if height_px
+            else max(4, int(round(final_width * (y1 - y0) / max(x1 - x0, 1e-9))))
+        )
+    elif nominal_width is not None and nominal_height is not None:
+        # Keep the nominal pixels-per-Angstrom scale even when the canvas had
+        # to expand, so atoms stay exactly the same size across figures.
+        scale = (style.width_in * style.dpi) / nominal_width
+        final_width = max(4, int(round((x1 - x0) * scale)))
+        final_height = max(4, int(round((y1 - y0) * scale)))
+    else:
+        final_width = max(4, int(round(style.width_in * style.dpi)))
+        final_height = max(
+            4, int(round(final_width * (y1 - y0) / max(x1 - x0, 1e-9)))
+        )
 
     factor = int(supersample if supersample is not None else style.supersample)
     factor = max(1, factor)

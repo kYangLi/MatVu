@@ -182,14 +182,23 @@ def test_fixed_canvas_keeps_atom_sizes_and_canvas_constant():
     view = View([0.0, 1.0, 0.0])
     single = trace_image(_single_atom_scene(), view, style, supersample=1)
     pair = trace_image(_single_atom_scene(3.0), view, style, supersample=1)
+    wide = trace_image(_single_atom_scene(10.0), view, style, supersample=1)
     assert single.shape[:2] == pair.shape[:2] == (200, 200)
-    single_runs = _dark_runs(single[single.shape[0] // 2, :, 0] < 0.5)
-    pair_runs = _dark_runs(pair[pair.shape[0] // 2, :, 0] < 0.5)
+    # content wider than the canvas: the canvas expands instead of clipping
+    assert wide.shape[0] == 200
+    assert wide.shape[1] > 200
+    middle = 100
+    single_runs = _dark_runs(single[middle, :, 0] < 0.5)
+    pair_runs = _dark_runs(pair[middle, :, 0] < 0.5)
+    wide_runs = _dark_runs(wide[middle, :, 0] < 0.5)
     assert len(single_runs) == 1
     assert len(pair_runs) == 2
-    # identical atom diameter in pixels in both figures
+    assert len(wide_runs) == 2
+    # identical atom diameter in pixels in every figure
     assert abs(single_runs[0] - pair_runs[0]) <= 2
     assert abs(pair_runs[0] - pair_runs[1]) <= 2
+    assert abs(wide_runs[0] - single_runs[0]) <= 2
+    assert abs(wide_runs[1] - single_runs[0]) <= 2
 
 
 def test_fixed_canvas_aspect():

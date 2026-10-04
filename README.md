@@ -32,8 +32,9 @@ Early development, but already useful:
   render as a clear lattice of distinct spheres (`--metal-bonds` re-enables
   the sticks)
 - Fixed-canvas option for a uniform scale: `--canvas W H` (Angstrom, also
-  `Style.canvas`) keeps the canvas size and the atom size identical across
-  figures, so structures keep their true relative sizes
+  `Style.canvas`) keeps the canvas and atom size identical across figures.
+  The canvas is a *minimum* size — if a structure does not fit, the image
+  expands instead of clipping (the scale stays the same)
 - Automatic viewpoint selection uses a maximin projected-dispersion criterion
   for crystals (atoms spread out evenly; views stay in a comfortable
   above-horizon elevation band, neither looking up nor steep top-down), a

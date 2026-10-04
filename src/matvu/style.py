@@ -45,6 +45,7 @@ class Style:
     width_in: float = 6.0
     dpi: int = 300
     perspective: float = 0.18  # 0 = orthographic, larger = stronger perspective
+    depth_cue: float = 0.0  # 0..1 aerial-perspective fade towards the background
 
 
 def style_preset(name: str = "3d") -> Style:
@@ -53,8 +54,9 @@ def style_preset(name: str = "3d") -> Style:
     ``"3d"``
         Shaded ball-and-stick with mild perspective (the default).
     ``"flat"``
-        Flat-design look: solid colours with silhouette outlines, no
-        gradients or highlights, orthographic camera.
+        Flat-design look with a 2.5D feel: solid colours, silhouette
+        outlines, a gentle directional shading (no highlights) and an
+        orbital depth cue that fades distant atoms towards the background.
     """
     key = str(name).lower()
     if key in ("3d", "default", "shaded"):
@@ -62,9 +64,10 @@ def style_preset(name: str = "3d") -> Style:
     if key in ("flat", "2d"):
         return Style(
             shading=False,
-            ambient=1.0,
-            diffuse=0.0,
+            ambient=0.70,
+            diffuse=0.38,
             specular=0.0,
             perspective=0.0,
+            depth_cue=0.35,
         )
     raise ValueError(f"unknown style preset {name!r}; available: ['3d', 'flat']")

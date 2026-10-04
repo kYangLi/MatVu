@@ -75,12 +75,15 @@ def _shade(
     darker silhouette outline (flat-design look).
     """
     if not style.shading:
+        lambert = np.clip(normals @ key_light, 0.0, 1.0)
+        intensity = style.ambient + style.diffuse * lambert
+        colour = base[None, None, :] * intensity[..., None]
         view_term = np.clip(np.einsum("...i,...i", normals, view), 0.0, 1.0)
-        outline = np.clip((0.25 - view_term) / 0.25, 0.0, 1.0)
-        dark = base * 0.4
+        outline = np.clip((0.22 - view_term) / 0.22, 0.0, 1.0)
+        outline_colour = base * 0.35
         flat = (
-            base[None, None, :] * (1.0 - outline[..., None])
-            + dark[None, None, :] * outline[..., None]
+            colour * (1.0 - outline[..., None])
+            + outline_colour[None, None, :] * outline[..., None]
         )
         return np.clip(flat, 0.0, 1.0)
     lambert = np.clip(normals @ key_light, 0.0, 1.0)
@@ -141,6 +144,15 @@ def trace_image(
         camera_distance = None
         focal = 0.0
         camera_position = None
+
+    # Depth range of the scene along the view, for the aerial-perspective cue.
+    if camera_distance is None:
+        t_near = 4.0 * scene_radius
+        t_far = 6.0 * scene_radius
+    else:
+        t_near = max(camera_distance - scene_radius, 1e-6)
+        t_far = camera_distance + scene_radius
+    background = _rgb(style.background)
 
     def image_points(points: np.ndarray) -> np.ndarray:
         """Map world points ``(..., 3)`` to image-plane coordinates."""
@@ -237,6 +249,12 @@ def trace_image(
             shaded = np.broadcast_to(base, (row1 - row0, col1 - col0, 3))
         else:
             shaded = _shade(normals, base, style, key_light, fill_light, view_dirs)
+        if style.depth_cue > 0.0:
+            fade = (
+                np.clip((t - t_near) / max(t_far - t_near, 1e-9), 0.0, 1.0)
+                * style.depth_cue
+            )
+            shaded = shaded * (1.0 - fade[..., None]) + background * fade[..., None]
         depth[row0:row1, col0:col1] = np.where(update, t, block)
         block_colour = colour[row0:row1, col0:col1]
         colour[row0:row1, col0:col1] = np.where(
@@ -341,7 +359,6 @@ def trace_image(
             axis=(1, 3)
         )
 
-    background = _rgb(style.background)
     if style.transparent:
         straight = np.divide(
             colour,

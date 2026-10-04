@@ -53,9 +53,11 @@ def test_style_presets():
     flat = style_preset("flat")
     assert flat.shading is False
     assert flat.perspective == 0.0
+    assert flat.depth_cue > 0.0
     shaded = style_preset("3d")
     assert shaded.shading is True
     assert shaded.perspective > 0.0
+    assert shaded.depth_cue == 0.0
 
 
 def test_cli_render_flat_style(tmp_path):

@@ -103,6 +103,21 @@ def test_cell_frame_is_drawn():
     assert not np.allclose(with_frame, without_frame)
 
 
+def test_depth_cue_fades_distant_atoms():
+    view = View([1.0, 0.0, 0.0])  # depths vary along this view
+    plain_style = _flat_style()
+    plain_style.shading = False
+    plain_style.depth_cue = 0.0
+    faded_style = _flat_style()
+    faded_style.shading = False
+    faded_style.depth_cue = 0.5
+    plain = trace_image(_scene(True), view, plain_style, supersample=1)
+    faded = trace_image(_scene(True), view, faded_style, supersample=1)
+    assert not np.allclose(plain, faded)
+    # distant surfaces are mixed towards the white background
+    assert faded[:, :, :3].mean() > plain[:, :, :3].mean()
+
+
 def test_flat_shading_uses_exact_colour():
     view = View([0.0, 1.0, 0.0])
     style = _flat_style()

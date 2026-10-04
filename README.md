@@ -35,8 +35,9 @@ Early development, but already useful:
   for crystals (atoms spread out evenly; axis-aligned top-down views are
   avoided), a ~30 degree tilt for layered materials and face-on views for
   molecules
-- Two look presets: `3d` (shaded ball-and-stick) and `flat` (solid colours
-  with silhouette outlines, orthographic): `matvu render --style flat`
+- Two look presets: `3d` (shaded ball-and-stick with perspective) and `flat`
+  (2.5D flat design: solid colours, subtle directional shading, silhouette
+  outlines and an aerial-perspective depth fade): `matvu render --style flat`
 - Atom sizes are strictly proportional to covalent radii at a uniform scale
   (no forced minimum radius)
 - Unit cell frame drawn for 3D crystals only; molecular vacuum boxes and 2D

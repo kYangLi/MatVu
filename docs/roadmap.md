@@ -33,7 +33,7 @@ render("POSCAR", view="auto")      # 自动视角 -> PNG
 
 ## 4. 现状（已实现）
 
-- 版本 `0.1.3`（发布中）；**119 个单元测试全部通过**；公开仓库 `kYangLi/MatVu` + PyPI
+- 版本 `0.1.3`（发布中）；**122 个单元测试全部通过**；公开仓库 `kYangLi/MatVu` + PyPI
   （0.1.0、0.1.2 已发布；Trusted Publishing + GitHub Actions）。
 - 模块地图：
 

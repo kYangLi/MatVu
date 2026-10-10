@@ -197,7 +197,7 @@ If you use *MatVu* in academic work, please cite the software using the metadata
 - **Paper and thesis figures**: one command per structure, consistent viewpoints across a series, vector and transparent output ready for LaTeX/slides
 - **Teaching and presentations**: quick, readable ball-and-stick figures in `toon`/`flat` styles without a GUI
 - **High-throughput screening**: batch-render large structure sets with fixed palettes, radii and camera conventions
-- **Method development**: the viewpoint scoring, palettes and backends are modular and fully unit-tested (119 tests) — easy to extend and compare
+- **Method development**: the viewpoint scoring, palettes and backends are modular and fully unit-tested (122 tests) — easy to extend and compare
 
 ## Contributing
 

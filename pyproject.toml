@@ -58,6 +58,15 @@ path = "src/matvu/__init__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["src/matvu"]
 
+[tool.hatch.build.targets.sdist]
+# keep the source distribution lean: image assets live in the repository only
+exclude = [
+  "docs/_image",
+  "docs/_image/**",
+  "examples/figures",
+  "examples/figures/**",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"

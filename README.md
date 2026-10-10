@@ -34,6 +34,7 @@ Rendering is handled by pluggable backends: a **`tracer`** backend that performs
   - [Installation](#installation)
   - [Basic Usage](#basic-usage)
   - [Rendering Styles](#rendering-styles)
+  - [Gallery](#gallery)
   - [Uniform-Scale Series](#uniform-scale-series)
 - [Themes](#themes)
 - [Citation](#citation)
@@ -108,6 +109,14 @@ matvu theme list                                # built-in themes and palettes
 
 All presets share the same automatic viewpoint; `toon` and `flat` add an aerial-perspective depth fade.
 
+### Gallery
+
+Every figure is rendered with a completely automatic viewpoint — no manual rotation. Ready-made images live in [`examples/figures/`](examples/figures/); regenerate them with `python examples/showcase.py --style <preset>`.
+
+[![MatVu showcase — toon](https://raw.githubusercontent.com/kYangLi/MatVu/main/examples/figures/showcase_toon.png)](examples/figures/)
+
+Other ready-made figures: [`3d`](https://raw.githubusercontent.com/kYangLi/MatVu/main/examples/figures/showcase_3d.png) · [`flat`](https://raw.githubusercontent.com/kYangLi/MatVu/main/examples/figures/showcase_flat.png) · palette sheet [`palettes.png`](https://raw.githubusercontent.com/kYangLi/MatVu/main/examples/figures/palettes.png)
+
 ### Uniform-Scale Series
 
 By default every figure is fitted to its own structure. For a series of comparable figures, pass the same canvas:
@@ -158,7 +167,7 @@ If you use *MatVu* in academic work, please cite the software using the metadata
 - **Paper and thesis figures**: one command per structure, consistent viewpoints across a series, vector and transparent output ready for LaTeX/slides
 - **Teaching and presentations**: quick, readable ball-and-stick figures in `toon`/`flat` styles without a GUI
 - **High-throughput screening**: batch-render large structure sets with fixed palettes, radii and camera conventions
-- **Method development**: the viewpoint scoring, palettes and backends are modular and fully unit-tested (82 tests) — easy to extend and compare
+- **Method development**: the viewpoint scoring, palettes and backends are modular and fully unit-tested (89 tests) — easy to extend and compare
 
 ## Contributing
 

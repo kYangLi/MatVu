@@ -1,12 +1,15 @@
 """MatVu showcase: fully automatic viewpoint + tracer rendering.
 
 For every example structure the view is chosen automatically (``view="auto"``)
-and rendered with the analytic ray-casting backend. Individual images and one
-contact sheet end up in ``examples/out/``.
+and rendered with the analytic ray-casting backend. Individual tiles and one
+contact sheet end up in ``examples/out/`` by default; pass ``--out DIR`` to
+write them elsewhere (the committed previews in ``examples/figures/`` are
+generated this way).
 
 Usage::
 
     .venv/bin/python examples/showcase.py [--dpi 200] [--width 4.5]
+                                          [--style 3d|toon|flat] [--out DIR]
 """
 
 from __future__ import annotations
@@ -27,7 +30,6 @@ from matvu.style import Style, style_preset
 ROOT = Path(__file__).resolve().parents[1]
 STRUCTURES = ROOT / "examples" / "structures"
 OUTPUT = ROOT / "examples" / "out"
-TILES = OUTPUT / "showcase"
 
 # Metal-metal bonds are skipped by default (see Style.metal_metal_bonds), so
 # Cu renders as close-packed spheres and MoS2 keeps only Mo-S sticks.
@@ -66,9 +68,16 @@ def main() -> int:
         metavar=("W", "H"),
         help="force one view-plane size in Angstrom for every case (default: per-case settings)",
     )
+    parser.add_argument(
+        "--out",
+        default=None,
+        metavar="DIR",
+        help="output directory (default: examples/out)",
+    )
     args = parser.parse_args()
 
-    tiles = TILES / args.style
+    output_dir = Path(args.out).expanduser() if args.out else OUTPUT
+    tiles = output_dir / "showcase" / args.style
     tiles.mkdir(parents=True, exist_ok=True)
     base_style = style_preset(args.style)
     base_style.width_in = args.width
@@ -98,8 +107,8 @@ def main() -> int:
             f"az {azimuth:6.1f} deg  el {elevation:5.1f} deg  -> {output.name}"
         )
 
-    sheet_name = "showcase.png" if args.style == "3d" else f"showcase_{args.style}.png"
-    compose(rendered, args.cols, base_style, OUTPUT / sheet_name)
+    sheet_name = f"showcase_{args.style}.png"
+    compose(rendered, args.cols, base_style, output_dir / sheet_name)
     return 0
 
 

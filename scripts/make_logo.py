@@ -4,19 +4,23 @@ Flat 2D cartoon mark: a small ball-and-stick fragment drawn with solid
 colours and bold outlines (matching the ``toon`` render style), framed by
 four viewfinder corners. Colours follow the official ``matvu`` palette.
 
+Repository tooling (not a user-facing example).
+
 Usage::
 
-    .venv/bin/python examples/make_logo.py
+    .venv/bin/python scripts/make_logo.py
 """
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import matplotlib
 
 matplotlib.use("Agg")
 matplotlib.rcParams["svg.fonttype"] = "path"
+matplotlib.rcParams["svg.hashsalt"] = "matvu"  # deterministic clip-path ids
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Circle
@@ -233,6 +237,10 @@ def _save(figure, path_stem):
     for suffix in ("svg", "png"):
         figure.savefig(f"{path_stem}.{suffix}", transparent=True, pad_inches=0)
     plt.close(figure)
+    # deterministic output: drop the embedded creation timestamp
+    svg_path = Path(f"{path_stem}.svg")
+    text = re.sub(r"\s*<dc:date>[^<]*</dc:date>", "", svg_path.read_text())
+    svg_path.write_text(text)
     print(f"wrote {path_stem}.svg / .png")
 
 

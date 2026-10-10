@@ -70,8 +70,10 @@ src/matvu/
     晶体自动视角限制在舒适仰角带（10°–60°，不仰视、不过陡俯视）；
     立方晶体统一固定视角（相对晶格 (1,1,0.6)，az 45° / el 23°）
   - CLI：`matvu render` / `matvu info` / `matvu candidates`
-- 示例与演示：`examples/structures/`（Si、NaCl、graphene、water 四个算例）；
-  `examples/out/` 有 4 张自动视角渲染图（被 gitignore，本地生成）。
+- 示例与演示（面向用户，可直接运行）：`examples/structures/` 8 个算例（晶体 / 二维 / 分子）、
+  `examples/showcase.py`（自动视角批量渲染 + contact sheet）、`examples/palette_preview.py`（配色总览）；
+  `examples/figures/` 提交现成成品图，`examples/out/` 是本地临时输出（gitignore）。
+  仓库自身资产工具（logo / social-preview 生成）在 `scripts/`。
 - 已知限制：
   - 正交投影，无透视；
   - 键只在"当前显示原子之间"绘制，周期镜像键不画 → 单胞边界出现悬挂原子，
@@ -138,7 +140,7 @@ src/matvu/
 
 ```bash
 uv venv && uv pip install -e ".[dev]"
-.venv/bin/python -m pytest                      # 27 个测试，应全部通过
+.venv/bin/python -m pytest                      # 89 个测试，应全部通过
 .venv/bin/matvu render examples/structures/water.POSCAR --print-view
 .venv/bin/matvu info examples/structures/Si.POSCAR
 ```
@@ -149,7 +151,7 @@ uv venv && uv pip install -e ".[dev]"
 2. git 不受影响（仓库在目录内部），无 remote；
 3. 新会话开场白（可直接复制给 AI）：
 
-   > 读 `docs/roadmap.md` 与 `docs/design.md`，先跑 pytest 确认 27 个测试通过，
+   > 读 `docs/roadmap.md` 与 `docs/design.md`，先跑 pytest 确认 89 个测试通过，
    > 然后从路线图 P0 开始实现；保持核心/后端解耦与现有代码风格。
 
 ### 首次 push 流程

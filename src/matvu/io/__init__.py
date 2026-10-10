@@ -71,6 +71,8 @@ def _parse_text(text: str, filename: str, format: str | None) -> Structure:
             )
         return reader(text)
     key = _sniff_format(filename)
+    if key is None:
+        key = _sniff_text(text)
     if key is None and len(_READERS) == 1:
         key = next(iter(_READERS))
     if key is None:
@@ -86,10 +88,45 @@ def _sniff_format(filename: str) -> str | None:
     suffix = Path(filename).suffix.lower()
     if name in ("poscar", "contcar") or suffix in (".poscar", ".vasp"):
         return "vasp"
+    if suffix in (".cif", ".mcif"):
+        return "cif"
+    if suffix == ".xyz":
+        return "xyz"
+    return None
+
+
+def _sniff_text(text: str) -> str | None:
+    """Detect the format from raw text when no usable file name is given."""
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if not lines:
+        return None
+    head = lines[0].lower()
+    if head.startswith(("data_", "loop_", "_", "save_")) or "_cell_length" in text[:2000]:
+        return "cif"
+    first = lines[0].split()[0]
+    if first.lstrip("+-").isdigit():
+        count = int(first)
+        rows = lines[2 : 2 + count]
+        if count > 0 and len(rows) == count and all(
+            len(row.split()) >= 4 for row in rows
+        ):
+            return "xyz"
+    if len(lines) >= 5:
+        try:
+            float(lines[1].split()[0])
+        except (IndexError, ValueError):
+            pass
+        else:
+            if all(len(lines[index].split()) >= 3 for index in (2, 3, 4)):
+                return "vasp"
     return None
 
 
 # Built-in readers register themselves on import.
+from . import cif as _cif  # noqa: E402
 from . import vasp as _vasp  # noqa: E402
+from . import xyz as _xyz  # noqa: E402
 
 register_reader("vasp", _vasp.read_poscar)
+register_reader("cif", _cif.read_cif)
+register_reader("xyz", _xyz.read_xyz)

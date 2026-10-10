@@ -3,7 +3,7 @@
 > 本文件是项目的"活文档"：定位、原则、现状、技术决策、待办与交接方式。
 > 目录被移动/改名后，新会话请先读本文件 + `docs/design.md`，再跑一次测试确认基线。
 >
-> 最后更新：2026-10-10，版本 0.1.0（发布中）
+> 最后更新：2026-10-10，版本 0.1.3（发布中）
 
 ## 1. 一句话定位
 
@@ -33,13 +33,14 @@ render("POSCAR", view="auto")      # 自动视角 -> PNG
 
 ## 4. 现状（已实现）
 
-- 版本 `0.1.0`（发布中）；**82 个单元测试全部通过**；git 本地提交历史完整，无 remote。
+- 版本 `0.1.3`（发布中）；**119 个单元测试全部通过**；公开仓库 `kYangLi/MatVu` + PyPI
+  （0.1.0、0.1.2 已发布；Trusted Publishing + GitHub Actions）。
 - 模块地图：
 
 ```
 src/matvu/
   structure.py     # Structure：晶格 + 笛卡尔坐标 + 元素 + pbc
-  io/              # 读取器注册表 + vasp.py（POSCAR 解析）
+  io/              # 读取器注册表 + vasp.py（POSCAR）/ cif.py / xyz.py（extxyz）
   elements.py      # 共价/范德华半径、质量、Jmol 颜色
   geometry.py      # 最小镜像、距离矩阵、键连、惯量主轴、视角基
   scene.py         # Scene 构建 + 正交投影 Projection
@@ -47,8 +48,10 @@ src/matvu/
   gallery.py       # 候选视角排名 + 连拍图（评估/校准）
   style.py         # 尺寸/光照/画布样式
   backends/        # base.py 协议 + mpl.py 实现 + 注册表
-  render.py        # 高层 API：render / auto_view / resolve_view
-  cli.py           # matvu render / matvu info
+  render.py        # 高层 API：render / render_array / auto_view / resolve_view
+  batch.py         # 目录级批量渲染（DeepH 布局原生支持；原地或镜像输出）
+  animate.py       # 环绕动画（GIF/WebP/透明 PNG 序列）
+  cli.py           # matvu render / batch / animate / candidates / info / theme
 ```
 
 - 已实现功能：
@@ -125,14 +128,19 @@ src/matvu/
 3. ✅ 透视相机（`Style.perspective`，默认 0.25；`--perspective 0` 为正交）；
    二维板层自动斜视（偏离法线约 32°）。后续：tracer 进阶效果（环境光遮蔽、柔和阴影）。
 4. 对称性感知视角（高对称方向加权/加分，周期性体系）。
-5. CIF / XYZ 读取器（验证 io 插件接口，第二个格式优先 CIF）。
-6. 样式扩展：spacefill/wireframe、配色方案、透明背景、论文预设（字号/线宽/边距）。
+5. ✅ CIF / XYZ(extxyz) 读取器（2026-10-10 完成）：CIF 支持 `_cell_*` 参数 + 对称操作展开
+   （分数/带符号表达式解析、按位置去重、零占位率丢弃、无操作按 P1），XYZ 支持 extxyz
+   `Lattice=`/`pbc=`；无文件名的裸文本按内容嗅探（CIF/XYZ/POSCAR）。
+6. 样式扩展：spacefill/wireframe、论文预设（字号/线宽/边距）。（透明背景、cell 策略已完成）
 
 ### P2
 
-7. 动画（自旋/环绕）导出；选区/高亮；晶胞框绘制。
-8. PyVista 可选后端；KD-tree 加速；周期性镜像键自动补全。
-9. 发布准备：PyPI 首次发布 0.1.0（进行中）；GitHub Actions CI 待仓库建立后添加。
+7. ✅ 环绕动画（`matvu animate`，2026-10-10）：GIF/WebP/透明 PNG 序列；`--axis auto`
+   自动选择与视线最垂直的世界轴（避免正对视角下"原地不动"）；选区/高亮仍待做。
+8. ✅ `matvu batch`（2026-10-10）：目录/glob 递归发现（默认找 `POSCAR`，DeepH `dft/**/POSCAR`
+   直接可用）；原地输出 `<name>_view.<ext>` 或 `-o` 镜像目录树；支持多格式、`-j` 并行、增量跳过。
+9. PyVista 可选后端；KD-tree 加速；周期性镜像键自动补全。
+10. 发布：0.1.0（2026-10-10）、0.1.2 已发布；0.1.3 发布中。
 
 ## 8. 开发与交接
 

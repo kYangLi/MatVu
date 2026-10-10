@@ -8,9 +8,11 @@ automatically and renders a publication-ready ball-and-stick figure::
     render("POSCAR", view="auto")
 """
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
+from .animate import orbit_views, render_orbit
 from .backends import available_backends, register_backend
+from .batch import BatchResult, find_structures, render_batch
 from .gallery import rank_candidates, render_candidates
 from .io import available_formats, load_structure, register_reader
 from .palettes import palette_names
@@ -23,6 +25,7 @@ from .viewpoint import score as score_view
 
 __all__ = [
     "__version__",
+    "BatchResult",
     "Structure",
     "Style",
     "View",
@@ -30,8 +33,10 @@ __all__ = [
     "available_backends",
     "available_formats",
     "export_theme",
+    "find_structures",
     "load_structure",
     "load_theme",
+    "orbit_views",
     "palette_names",
     "pick_view",
     "rank_candidates",
@@ -39,7 +44,9 @@ __all__ = [
     "register_reader",
     "render",
     "render_array",
+    "render_batch",
     "render_candidates",
+    "render_orbit",
     "resolve_view",
     "score_view",
     "style_preset",

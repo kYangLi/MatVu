@@ -36,6 +36,7 @@ Rendering is handled by pluggable backends: a **`tracer`** backend that performs
   - [Rendering Styles](#rendering-styles)
   - [Gallery](#gallery)
   - [Uniform-Scale Series](#uniform-scale-series)
+  - [Batch Rendering and Animations](#batch-rendering-and-animations)
 - [Themes](#themes)
 - [Citation](#citation)
 - [Application Scenarios](#application-scenarios)
@@ -53,7 +54,9 @@ Rendering is handled by pluggable backends: a **`tracer`** backend that performs
 
 - **Look Presets and Themes:** `3d`, `toon` (cel shading) and `flat` styles; three official palettes (`matvu`, `jmol`, `pastel`) plus user-editable TOML themes covering colours, radii and any style parameter.
 
-- **Works for Crystals, 2D Materials and Molecules:** One `Structure` model for periodic cells (with mirrored boundary atoms), layered slabs (automatic tilted views) and finite molecules (face-on views), driven by a plugin reader registry.
+- **Works for Crystals, 2D Materials and Molecules:** One `Structure` model for periodic cells (with mirrored boundary atoms), layered slabs (automatic tilted views) and finite molecules (face-on views), driven by a plugin reader registry — POSCAR/CONTCAR, CIF (with symmetry expansion) and XYZ/extxyz are built in.
+
+- **Project-Scale Workflows:** `matvu batch` renders every structure of a project tree (DeepH-style `dft/**/POSCAR` out of the box, in place or mirrored to a figure directory) and `matvu animate` exports 360° orbit GIF/WebP animations from the automatic view.
 
 ## Quick Start
 
@@ -80,12 +83,14 @@ pytest
 One line is enough — the view is chosen automatically:
 
 ```python
-from matvu import render, render_array
+from matvu import render, render_array, render_batch, render_orbit
 
 render("POSCAR", view="auto")            # -> POSCAR_view.png (transparent)
 render("POSCAR", style="toon", view="a") # explicit style and view
 
-image = render_array("POSCAR", view="auto")  # (H, W, 4) float RGBA in memory
+image = render_array("POSCAR", view="auto")     # (H, W, 4) float RGBA in memory
+render_batch("dft/", "figures/", jobs=0)        # every dft/**/POSCAR
+render_orbit("POSCAR", "spin.gif", frames=72)   # 360 deg orbit animation
 ```
 
 Command line:
@@ -95,6 +100,8 @@ matvu render POSCAR --style toon -o figure.png   # animation-style figure
 matvu render POSCAR --force-cell -o fig.png      # force the unit-cell frame
 matvu render POSCAR --canvas 12 12 -o fig.png   # uniform scale across figures
 matvu candidates POSCAR -n 12 -o candidates.png # ranked viewpoint contact sheet
+matvu batch dft/ -o figures/ -j 0               # every dft/**/POSCAR (mirrored)
+matvu animate POSCAR --frames 72 -o spin.gif    # 360 deg orbit animation
 matvu info POSCAR                               # composition, cell, volume
 matvu theme list                                # built-in themes and palettes
 ```
@@ -126,6 +133,29 @@ matvu render POSCAR --canvas 18 18 -o fig.png
 ```
 
 The canvas is a *minimum* size: if a structure does not fit, the image expands instead of clipping, so atoms keep exactly the same size across the series.
+
+### Batch Rendering and Animations
+
+`matvu batch` walks a project tree and renders every structure it finds — a DeepH-style layout needs no arguments beyond the root directory:
+
+```bash
+matvu batch dft/                         # every dft/**/POSCAR -> POSCAR_view.png beside it
+matvu batch dft/ -o figures/             # mirror the tree under figures/ instead
+matvu batch dft/ --format pdf,png -j 0   # vector + raster, all cores
+matvu batch dft/ --pattern "POSCAR,CONTCAR,*.vasp,*.cif" --skip-existing
+```
+
+It defaults to **`png`** — transparent, previewable right next to the calculation and consistent with `matvu render`; pass `--format pdf` (or `pdf,png`) for vector figures. `--skip-existing` makes re-runs incremental and `-j 0` uses every core.
+
+`matvu animate` turns the automatic view into a looping 360° orbit:
+
+```bash
+matvu animate POSCAR --frames 72 -o spin.gif          # GIF (flat background)
+matvu animate POSCAR --frames 72 -o spin.webp         # animated WebP (keeps transparency)
+matvu animate POSCAR --frames 72 --frames-dir frames/ # transparent PNG frames
+```
+
+`--axis auto` (the default) picks the world axis most perpendicular to the view, so the camera is guaranteed to move; `--axis x|y|z` pins it to a fixed axis.
 
 ## Themes
 
@@ -167,7 +197,7 @@ If you use *MatVu* in academic work, please cite the software using the metadata
 - **Paper and thesis figures**: one command per structure, consistent viewpoints across a series, vector and transparent output ready for LaTeX/slides
 - **Teaching and presentations**: quick, readable ball-and-stick figures in `toon`/`flat` styles without a GUI
 - **High-throughput screening**: batch-render large structure sets with fixed palettes, radii and camera conventions
-- **Method development**: the viewpoint scoring, palettes and backends are modular and fully unit-tested (89 tests) — easy to extend and compare
+- **Method development**: the viewpoint scoring, palettes and backends are modular and fully unit-tested (119 tests) — easy to extend and compare
 
 ## Contributing
 

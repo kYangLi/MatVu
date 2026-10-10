@@ -76,21 +76,31 @@
 ```python
 from matvu import Structure, register_reader
 
-def read_cif(text: str) -> Structure:
+def read_myformat(text: str) -> Structure:
     ...
 
-register_reader("cif", read_cif)
+register_reader("myformat", read_myformat)
 ```
 
-内置读取器注册在 `matvu.io.vasp`，通过 `register_reader("vasp", read_poscar)` 接入。
-未知文件按扩展名/文件名（`POSCAR`、`CONTCAR`、`*.vasp`）嗅探。
+内置读取器：`vasp`（POSCAR/CONTCAR）、`cif`、`xyz`（含 extxyz）。
+
+- **CIF**：`_cell_length_*` / `_cell_angle_*` → 晶格（a 沿 x、b 在 xy 面内）；`_atom_site`
+  分数坐标；对称操作（`_symmetry_equiv_pos_as_xyz` / `_space_group_symop_operation_xyz`）
+  逐条展开并去重，无操作按 P1 处理；零占位率位点丢弃，部分占位按满原子绘制。
+- **XYZ**：普通 XYZ 读作有限分子；extxyz 的 `Lattice="..."` / `pbc="..."` 属性被采纳。
+
+嗅探顺序：文件名/扩展名（`POSCAR`/`CONTCAR`/`*.vasp`/`*.cif`/`*.xyz`）→ 裸文本内容启发式
+（`data_`/`_cell_*` → CIF；首行整数且后继行 ≥4 列 → XYZ；否则按 POSCAR 语义尝试）。
 
 ## 路线图
 
-- **v0.1（当前）**：核心模型、POSCAR 读取、自动视角 v0、matplotlib 后端、CLI
-- **v0.2**：候选视角连拍图（✅ `matvu candidates`）；web 交互后端；`view="interactive"`
-- **v0.3**：CIF/XYZ 读取器；透视相机；spacefill/wireframe 样式；超胞与选区
-- **v0.4**：对称性感知视角；旋转/动画导出；论文模板（配色、字号、构图）
+- **v0.1**：核心模型、POSCAR 读取、自动视角 v0、matplotlib 后端、CLI
+- **v0.2**：候选视角连拍图（✅ `matvu candidates`）；透视相机（✅）；tracer 渲染后端（✅）；
+  web 交互后端（计划）
+- **v0.3（当前）**：CIF/XYZ 读取器（✅）；`matvu batch` 批量出图（✅）；`matvu animate`
+  环绕动画（✅）；晶胞框策略与视角解耦（✅）；sdist/发布流程（✅）
+- **v0.4（计划）**：对称性感知视角；`3d` 软阴影/环境光遮蔽；spacefill/wireframe 样式；
+  选区/高亮；论文模板（配色、字号、构图）
 
 ## 开发约定
 

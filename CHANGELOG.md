@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.1.3 (2026-10-10)
+
+- **New readers: CIF and XYZ/extxyz.** `load_structure` now also accepts CIF
+  files (cell parameters plus symmetry-operation expansion into the full cell,
+  P1 fallback, occupancy handling) and XYZ/extxyz files (plain molecules and
+  periodic cells carrying `Lattice=`), so structures from Materials Project,
+  COD and machine-learning datasets load without conversion. Raw text without
+  a file name is sniffed by content.
+- **`matvu batch` — project-scale rendering.** Recursively finds structures
+  (a DeepH-style `dft/**/POSCAR` layout works out of the box), writes
+  `<name>_view.<ext>` next to each input or mirrors the tree under `-o DIR`,
+  supports several output formats per structure, `-j` worker processes and
+  `--skip-existing` for incremental re-runs. It takes the same options as
+  `matvu render` (style, theme, palette, canvas, cell policy, ...), and
+  `render_batch()` exposes it in Python.
+- **`matvu animate` — orbit animations.** Renders a looping 360-degree orbit
+  from the automatic viewpoint to GIF or animated WebP (keeps transparency),
+  or writes a transparent PNG frame sequence. `--axis auto` (default) picks
+  the world axis most perpendicular to the view, so the camera always moves;
+  `render_orbit()` exposes it in Python.
+- Pillow is now an explicit dependency (GIF/WebP writing).
+
 ## 0.1.2 (2026-10-10)
 
 - **Fixed a severe `slab_normal()` misclassification**: layered detection now

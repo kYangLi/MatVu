@@ -432,3 +432,13 @@ def _save_image(image: np.ndarray, output: Path, style: Style):
     )
     plt.close(figure)
     return output
+
+
+def save_image(image: np.ndarray, output, style: Style):
+    """Write an in-memory RGBA image (as returned by :func:`trace_image`).
+
+    Raster suffixes (PNG/TIFF/WebP, JPEG/BMP flattened over the background)
+    are written directly; any other suffix (PDF/SVG/EPS) embeds the raster in
+    a vector container via matplotlib.
+    """
+    return _save_image(np.asarray(image, dtype=np.float32), Path(output), style)

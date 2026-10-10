@@ -34,5 +34,19 @@ The committed copies in `figures/` are the contact sheets from these commands
 (`--dpi 150`). Rendering the same structure twice gives the same viewpoint and
 image — the automatic view search is deterministic.
 
+## Your own project
+
+The same engine works on the command line for whole project trees and
+animations:
+
+```bash
+matvu batch dft/ -o figures/ --style toon --force-cell   # every dft/**/POSCAR
+matvu animate structures/Si.POSCAR --frames 72 -o spin.gif
+```
+
+`matvu batch` writes `POSCAR_view.png` next to each structure by default (or
+mirrors the tree under `-o DIR`); see the README for formats, selection
+patterns and parallelism.
+
 Repository tooling (logo and social-preview assets) lives in [`scripts/`](../scripts/),
 not here.

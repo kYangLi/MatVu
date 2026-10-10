@@ -1,6 +1,6 @@
 <!-- markdownlint-disable MD033 MD036 -->
 <h1><p align="center">
-  <img src="https://raw.githubusercontent.com/kYangLi/MatVu/main/docs/_image/logo-large.svg" alt="MatVu Logo" width="560">
+  <img src="https://raw.githubusercontent.com/kYangLi/MatVu/main/docs/_image/logo.svg" alt="MatVu Logo" width="560">
 </p></h1>
 
 <div align="center">

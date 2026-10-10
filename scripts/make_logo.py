@@ -1,8 +1,15 @@
 """Generate the MatVu logo assets into ``docs/_image/``.
 
+Outputs (exactly what the repository uses):
+
+* ``logo.svg`` — transparent logo used by the README (also shown on PyPI,
+  so the reference uses an absolute raw URL everywhere),
+* ``social-preview.png`` — GitHub social-preview card.
+
 Flat 2D cartoon mark: a small ball-and-stick fragment drawn with solid
 colours and bold outlines (matching the ``toon`` render style), framed by
-four viewfinder corners. Colours follow the official ``matvu`` palette.
+four viewfinder corners plus a small gold focus dot. Colours follow the
+official ``matvu`` palette.
 
 Repository tooling (not a user-facing example).
 
@@ -210,18 +217,19 @@ def _new_axes(width, height):
     return figure, ax
 
 
-def _save(figure, path_stem):
-    for suffix in ("svg", "png"):
+def _save(figure, path_stem, suffixes=("svg", "png")):
+    for suffix in suffixes:
         figure.savefig(f"{path_stem}.{suffix}", transparent=True, pad_inches=0)
     plt.close(figure)
-    # deterministic output: drop the embedded creation timestamp
-    svg_path = Path(f"{path_stem}.svg")
-    text = re.sub(r"\s*<dc:date>[^<]*</dc:date>", "", svg_path.read_text())
-    svg_path.write_text(text)
-    print(f"wrote {path_stem}.svg / .png")
+    if "svg" in suffixes:
+        # deterministic output: drop the embedded creation timestamp
+        svg_path = Path(f"{path_stem}.svg")
+        text = re.sub(r"\s*<dc:date>[^<]*</dc:date>", "", svg_path.read_text())
+        svg_path.write_text(text)
+    print("wrote " + " / ".join(f"{path_stem}.{suffix}" for suffix in suffixes))
 
 
-def make_logo(path_stem: str, tagline: bool, pure: bool = False):
+def make_logo(path_stem: str, tagline: bool, pure: bool = False, suffixes=("svg", "png")):
     if pure:
         figure, ax = _new_axes(2.2, 2.2)
         draw_mark(ax, (0.12, 0.12, 1.96, 1.96))
@@ -239,7 +247,7 @@ def make_logo(path_stem: str, tagline: bool, pure: bool = False):
                 ha="left",
                 va="center",
             )
-    _save(figure, path_stem)
+    _save(figure, path_stem, suffixes)
 
 
 def make_social_preview():
@@ -271,7 +279,5 @@ def make_social_preview():
 
 
 if __name__ == "__main__":
-    make_logo(str(OUT / "logo-large"), tagline=True)
-    make_logo(str(OUT / "logo-small"), tagline=False)
-    make_logo(str(OUT / "logo-pure"), tagline=False, pure=True)
+    make_logo(str(OUT / "logo"), tagline=True, suffixes=("svg",))
     make_social_preview()

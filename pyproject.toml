@@ -44,6 +44,11 @@ dev = [
     "pytest-cov>=4",
 ]
 
+[project.urls]
+Repository = "https://github.com/kYangLi/MatVu"
+Issues = "https://github.com/kYangLi/MatVu/issues"
+Changelog = "https://github.com/kYangLi/MatVu/blob/main/CHANGELOG.md"
+
 [project.scripts]
 matvu = "matvu.cli:main"
 

@@ -1,5 +1,7 @@
 # MatVu
 
+[![tests](https://github.com/kYangLi/MatVu/actions/workflows/test.yml/badge.svg)](https://github.com/kYangLi/MatVu/actions/workflows/test.yml)
+
 **Automatic viewpoint optimization and visualization for materials structures.**
 
 Point MatVu at a structure — a POSCAR to start with — and it works out a
@@ -92,7 +94,7 @@ pip install matvu
 Development setup:
 
 ```bash
-git clone https://github.com/<account>/MatVu
+git clone https://github.com/kYangLi/MatVu
 cd MatVu
 uv venv
 uv pip install -e ".[dev]"

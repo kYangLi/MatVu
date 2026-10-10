@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: If you use MatVu in your research, please cite it using this metadata.
+title: "MatVu: automatic viewpoint optimization and visualization for materials structures"
+abstract: >-
+  MatVu analyses a materials structure, automatically chooses a clear viewing
+  direction by optimising projected atom spread and occlusion, and renders
+  publication-ready ball-and-stick figures. It reads POSCAR files, treats
+  periodic crystals, 2D materials and molecules uniformly, and offers several
+  look styles and user-editable colour/radius themes.
+authors:
+  - name: kYangLi
+    email: lyang.1915@gmail.com
+repository-code: https://github.com/kYangLi/MatVu
+url: https://pypi.org/project/matvu/
+license: GPL-3.0-or-later
+version: 0.1.0
+date-released: 2026-10-10
+keywords:
+  - materials science
+  - visualization
+  - crystal structure
+  - viewpoint optimization
+  - ball-and-stick

@@ -52,8 +52,9 @@ Two workflows live in `.github/workflows/`:
 - `test.yml` — runs the full test suite on Python 3.10–3.13 for pushes to
   `main` and for pull requests.
 - `release.yml` — triggered by a published GitHub Release (or manually):
-  builds sdist + wheel, runs `twine check`, then publishes to PyPI with
-  **Trusted Publishing** (OIDC, no token stored anywhere).
+  builds sdist + wheel, runs `twine check`, publishes to PyPI with
+  **Trusted Publishing** (OIDC, no token stored anywhere), and attaches the
+  wheel/sdist to the GitHub Release.
 
 One-time setup on PyPI — add a *pending publisher* at
 <https://pypi.org/manage/account/publishing/>:

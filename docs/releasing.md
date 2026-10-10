@@ -42,15 +42,38 @@
    /tmp/matvu-check/bin/matvu --version
    ```
 
-7. Tag and push (after the GitHub repository exists):
+7. Create a GitHub Release (tag `v0.1.0`) — the `release.yml` workflow then
+   builds, checks and publishes automatically (see below).
 
-   ```bash
-   git tag v0.1.0 && git push origin main --tags
-   ```
+## Automated releases (GitHub Actions)
 
-## Later: automated releases
+Two workflows live in `.github/workflows/`:
 
-Once the GitHub repository exists, configure PyPI *Trusted Publishing*
-(publisher: GitHub Actions, workflow `release.yml`, environment `pypi`) and a
-workflow that builds and uploads on tag pushes. No long-lived token is needed
-then.
+- `test.yml` — runs the full test suite on Python 3.10–3.13 for pushes to
+  `main` and for pull requests.
+- `release.yml` — triggered by a published GitHub Release (or manually):
+  builds sdist + wheel, runs `twine check`, then publishes to PyPI with
+  **Trusted Publishing** (OIDC, no token stored anywhere).
+
+One-time setup on PyPI — add a *pending publisher* at
+<https://pypi.org/manage/account/publishing/>:
+
+| Field | Value |
+| --- | --- |
+| PyPI project name | `matvu` |
+| Owner | *your GitHub account* |
+| Repository | `MatVu` |
+| Workflow name | `release.yml` |
+| Environment | `pypi` |
+
+After that, releasing is just: bump the version → commit → tag → publish a
+GitHub Release; the workflow uploads the artifacts.
+
+## Git remote
+
+Push access is configured per machine with a dedicated SSH key kept outside the repository; the remote is:
+```bash
+git remote add origin git@github.com:<account>/MatVu.git
+```
+
+Write access is configured locally; the key never lives in the repository.

@@ -1,6 +1,8 @@
 # MatVu
 
 [![tests](https://github.com/kYangLi/MatVu/actions/workflows/test.yml/badge.svg)](https://github.com/kYangLi/MatVu/actions/workflows/test.yml)
+[![PyPI](https://img.shields.io/pypi/v/matvu)](https://pypi.org/project/matvu/)
+[![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 **Automatic viewpoint optimization and visualization for materials structures.**
 

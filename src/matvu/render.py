@@ -53,6 +53,40 @@ def render(
     )
 
 
+def render_array(
+    source,
+    *,
+    view="auto",
+    backend: str = "tracer",
+    style: Style | None = None,
+    supercell=None,
+    seed: int = 0,
+    **backend_kwargs,
+) -> np.ndarray:
+    """Render in memory and return the float RGBA image (no file round-trip).
+
+    Only backends that can produce in-memory images support this: the
+    ``tracer`` backend returns a ``(height, width, 4)`` float array in [0, 1];
+    ``matplotlib`` returns a figure, so use ``render(..., output=...)`` with
+    that backend instead.
+    """
+    structure = load_structure(source)
+    if supercell is not None:
+        structure = structure.supercell(supercell)
+    style = style or Style()
+    scene = build_scene(structure, style)
+    resolved = resolve_view(scene, view, seed=seed)
+    image = get_backend(backend).render(
+        scene, resolved, style, output=None, **backend_kwargs
+    )
+    if not isinstance(image, np.ndarray):
+        raise TypeError(
+            f"backend {backend!r} does not return an in-memory image; "
+            "use render(..., output=...) instead"
+        )
+    return image
+
+
 def auto_view(
     source,
     *,

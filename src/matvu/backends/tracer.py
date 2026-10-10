@@ -192,7 +192,7 @@ def trace_image(
         lower = np.zeros(2, dtype=np.float64)
         upper = np.ones(2, dtype=np.float64)
 
-    corners = cell_corners(scene) if style.draw_cell else None
+    corners = cell_corners(scene, style.cell)
     if corners is not None:
         corner_image = image_points(corners.astype(np.float32))
         lower = np.minimum(lower, corner_image.min(axis=0))

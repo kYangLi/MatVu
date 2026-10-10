@@ -3,9 +3,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from matvu import load_structure
-from matvu.scene import CELL_EDGE_INDICES, build_scene, cell_corners
+from matvu import Structure, load_structure
+from matvu.scene import CELL_EDGE_INDICES, build_scene, cell_corners, slab_normal
 from matvu.style import Style
+from matvu.viewpoint import pick_view
 
 DATA = Path(__file__).resolve().parents[1] / "examples" / "structures"
 
@@ -49,6 +50,71 @@ def test_boundary_mirror_copies_decorate_the_cell():
     silicon = build_scene(load_structure(DATA / "Si.POSCAR"))
     assert silicon.n_atoms == 14
     assert silicon.formula == "Si8"
+
+
+def test_flat_plane_filling_the_cell_is_not_a_slab():
+    # PCA shape says "flat" (all atoms on the (111) plane) but the atoms fill
+    # the cell in every direction: a slightly flattened 3D crystal, not a slab.
+    lattice = np.eye(3) * 6.0
+    fractional = np.array(
+        [
+            [0.5, 0.5, 0.5],
+            [1.0, 0.5, 0.0],
+            [1.0, 0.0, 0.5],
+            [0.5, 1.0, 0.0],
+            [0.0, 1.0, 0.5],
+            [0.5, 0.0, 1.0],
+            [0.0, 0.5, 1.0],
+        ]
+    )
+    structure = Structure(lattice, fractional @ lattice, ["C"] * len(fractional))
+    scene = build_scene(structure, Style(boundary_padding=0.0))
+    assert slab_normal(scene) is None
+    assert cell_corners(scene) is not None  # the frame is drawn
+
+
+def test_partially_filled_cell_is_not_a_slab():
+    # fractional spans like Ag2CaI6Rb2: no direction is confined to half the cell
+    lattice = np.eye(3) * 10.0
+    fractional = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [0.62, 0.0, 0.0],
+            [0.0, 0.89, 0.0],
+            [0.0, 0.0, 0.999],
+            [0.62, 0.89, 0.999],
+        ]
+    )
+    structure = Structure(lattice, fractional @ lattice, ["I"] * len(fractional))
+    scene = build_scene(structure, Style(boundary_padding=0.0))
+    assert slab_normal(scene) is None
+
+
+def test_elongated_cell_is_not_a_slab():
+    # elongated cell (like Hg2Mg2Te4): two directions share the vacuum, so it
+    # is not a layered material even though the point cloud looks thin
+    lattice = np.diag([4.6, 4.6, 14.2])
+    fractional = np.array(
+        [[0.0, 0.0, z] for z in (0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875)]
+    )
+    structure = Structure(lattice, fractional @ lattice, ["Te"] * len(fractional))
+    scene = build_scene(structure, Style(boundary_padding=0.0))
+    assert slab_normal(scene) is None
+
+
+def test_cell_policy_decouples_frame_from_viewpoint():
+    graphene = load_structure(DATA / "graphene.POSCAR").supercell((3, 3, 1))
+    scene = build_scene(graphene, Style())
+    assert cell_corners(scene, "auto") is None  # 2D slab: no frame by default
+    assert cell_corners(scene, "always") is not None  # forced frame
+    assert cell_corners(scene, "never") is None
+    water = build_scene(load_structure(DATA / "water.POSCAR"), Style())
+    assert cell_corners(water, "auto") is None
+    assert cell_corners(water, "always") is not None  # molecular box, if forced
+    # forcing the frame does not change the (layered) viewpoint branch
+    view = pick_view(scene, seed=0)
+    slant = float(np.degrees(np.arccos(abs(float(view.direction[2])))))
+    assert 10.0 < slant < 65.0
 
 
 def test_metal_metal_bonds_are_skipped_by_default():

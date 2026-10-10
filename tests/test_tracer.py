@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 
-from matvu import Structure, View, render
+from matvu import Structure, View, load_structure, render
 from matvu.backends.tracer import trace_image
 from matvu.scene import Scene, build_scene
 from matvu.style import Style
@@ -105,7 +105,7 @@ def test_cell_frame_is_drawn():
     structure = Structure(lattice, positions, ["H", "H"], pbc=(True, True, True))
     style_on = Style(width_in=1.5, dpi=50, supersample=1, atom_scale=0.25)
     style_off = Style(
-        width_in=1.5, dpi=50, supersample=1, atom_scale=0.25, draw_cell=False
+        width_in=1.5, dpi=50, supersample=1, atom_scale=0.25, cell="never"
     )
     view = View([0.0, 1.0, 0.0])
     with_frame = trace_image(build_scene(structure, style_on), view, style_on)
@@ -219,6 +219,22 @@ def test_perspective_changes_the_image():
     persp = trace_image(build_scene(structure, style_persp), view, style_persp)
     assert ortho.shape == persp.shape
     assert not np.allclose(ortho, persp)
+
+
+def test_forced_cell_frame_is_rendered():
+    structure = load_structure(DATA / "graphene.POSCAR").supercell((3, 3, 1))
+
+    def render_with(mode: str):
+        style = Style(
+            width_in=1.5, dpi=60, supersample=1, cell=mode, canvas=(16.0, 16.0)
+        )
+        return trace_image(build_scene(structure, style), View([0.0, 0.0, 1.0]), style)
+
+    auto = render_with("auto")
+    always = render_with("always")
+    never = render_with("never")
+    assert not np.allclose(auto, always)  # the forced frame is drawn
+    assert np.allclose(auto, never)  # this slab already had no frame by default
 
 
 def test_render_with_tracer_backend(tmp_path):

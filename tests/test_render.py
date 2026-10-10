@@ -1,7 +1,8 @@
 from pathlib import Path
 
-from matvu import render
+from matvu import render, render_array
 from matvu.cli import main
+from matvu.style import Style
 
 DATA = Path(__file__).resolve().parents[1] / "examples" / "structures"
 
@@ -80,6 +81,16 @@ def test_cli_render_flat_style(tmp_path):
     )
     assert code == 0
     assert (tmp_path / "flat.png").exists()
+
+
+def test_render_array_returns_rgba():
+    image = render_array(
+        DATA / "water.POSCAR",
+        view="auto",
+        style=Style(width_in=1.5, dpi=80, supersample=1),
+    )
+    assert image.shape[2] == 4
+    assert image[0, 0, 3] == 0.0  # transparent background
 
 
 def test_cli_canvas_option(tmp_path):

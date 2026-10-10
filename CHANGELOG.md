@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.1.1 (2026-10-10)
+
+- **Fixed a severe `slab_normal()` misclassification**: layered detection now
+  uses the lattice and the fractional vacuum (one direction with a
+  several-Angstrom vacuum gap while the atoms stay within half the cell)
+  instead of point-cloud PCA shape. Slightly flattened 3D crystals (e.g.
+  CaI6SrTl2, Br6In2PbTl2, Ag2CaI6Rb2) and elongated cells (e.g. Hg2Mg2Te4)
+  are no longer mistaken for slabs; structures filling the cell in every
+  direction short-circuit the test immediately.
+- **Unit-cell frame decoupled from the viewpoint**: new
+  `Style.cell = "auto" | "always" | "never"` and CLI `--cell` /
+  `--force-cell` / `--no-cell` — force frames for batch figures without
+  changing the automatic view.
+- `molecular_box()` now additionally requires real vacuum on *every* axis, so
+  primitive cells of 2D materials (a single graphene cell) are no longer
+  classified as molecular vacuum boxes.
+- New `render_array()` returns the RGBA image in memory (no file round-trip)
+  and `View.to_json()` / `View.from_json()` make viewpoints reproducible.
+- Removed a duplicated span check in `cell_corners()`.
+
 ## 0.1.0 (2026-10-10)
 
 First public release.

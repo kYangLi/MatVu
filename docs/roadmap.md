@@ -57,7 +57,7 @@ src/matvu/
     金属–金属默认不成键，无键结构自动使用清晰分离的晶格球半径（`Style.unbonded_atom_scale` 可调）
   - 自动视角 v0（算法见 §5）
   - tracer 后端（默认）：纯 numpy 解析光线投射、精确遮挡 + 边缘暗化；
-    透视相机（默认 0.18）；晶胞框只给三维晶体绘制（分子盒/准二维板层自动跳过，`--no-cell` 可关）；
+    透视相机（默认 0.18）；晶胞框策略 `auto/always/never`（与视角解耦，`--force-cell`/`--no-cell`）；
     周期性边界镜像原子（`Style.boundary_padding`，默认 0.1）使晶胞两侧对称
   - matplotlib 后端：PNG/PDF/SVG 快速预览（球面 sprite + 深描边双色键）
   - 风格预设：`3d`（立体光照）、`toon`（动画赛璐珞：双色调阴影 + 描边）、`flat`（纯平涂 + 描边），

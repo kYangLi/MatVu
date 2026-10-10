@@ -46,7 +46,7 @@ Rendering is handled by pluggable backends: a **`tracer`** backend that performs
 
 - **Automatic Viewpoint Optimization:** Scores hundreds of candidate directions (Fibonacci sampling plus high-symmetry directions) for occlusion, bond foreshortening and framing, then selects the most evenly spread view; cubic lattices share one fixed three-quarter convention.
 
-- **Publication-Ready Output:** Transparent PNG/TIFF/WebP and PDF/SVG by default, strict atom radii (display sizes proportional to covalent radii), designed element palettes and symmetric unit-cell frames.
+- **Publication-Ready Output:** Transparent PNG/TIFF/WebP and PDF/SVG by default, strict atom radii (display sizes proportional to covalent radii), designed element palettes and symmetric unit-cell frames (`--cell auto|always|never`, decoupled from the viewpoint choice).
 
 - **Multiple Rendering Backends:** An analytic ray-casting `tracer` (pure NumPy, exact occlusion, supersampling, orthographic or perspective) and a fast `matplotlib` preview backend — more backends can be registered.
 
@@ -89,6 +89,7 @@ Command line:
 
 ```bash
 matvu render POSCAR --style toon -o figure.png   # animation-style figure
+matvu render POSCAR --force-cell -o fig.png      # force the unit-cell frame
 matvu render POSCAR --canvas 12 12 -o fig.png   # uniform scale across figures
 matvu candidates POSCAR -n 12 -o candidates.png # ranked viewpoint contact sheet
 matvu info POSCAR                               # composition, cell, volume

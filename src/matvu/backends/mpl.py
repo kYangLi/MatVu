@@ -95,7 +95,7 @@ class MatplotlibBackend(Backend):
         lower = (xy - radii[:, None]).min(axis=0)
         upper = (xy + radii[:, None]).max(axis=0)
 
-        corners = cell_corners(scene) if style.draw_cell else None
+        corners = cell_corners(scene, style.cell)
         edge_data: list[tuple[np.ndarray, np.ndarray, float]] = []
         if corners is not None:
             planar_corners = corners @ projection.basis.T

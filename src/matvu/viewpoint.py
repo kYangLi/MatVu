@@ -6,7 +6,9 @@ Everything here is rendering-backend independent.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import numpy as np
 
@@ -54,6 +56,42 @@ class View:
     def __repr__(self) -> str:
         azimuth, elevation = self.angles_deg()
         return f"View(azimuth={azimuth:.1f} deg, elevation={elevation:.1f} deg)"
+
+    # ------------------------------------------------------------ serialising
+
+    def to_dict(self) -> dict:
+        """JSON-serialisable representation (to reproduce the viewpoint)."""
+        return {
+            "direction": [float(value) for value in self.direction],
+            "up_hint": [float(value) for value in self.up_hint],
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "View":
+        return cls(
+            direction=data["direction"],
+            up_hint=data.get("up_hint", (0.0, 0.0, 1.0)),
+        )
+
+    def to_json(self, path=None) -> str:
+        """Return the viewpoint as JSON text, optionally writing it to ``path``."""
+        text = json.dumps(self.to_dict(), indent=2)
+        if path is not None:
+            Path(path).write_text(text + "\n", encoding="utf-8")
+        return text
+
+    @classmethod
+    def from_json(cls, source) -> "View":
+        """Load a viewpoint from a :class:`View`, dict, JSON text or JSON path."""
+        if isinstance(source, cls):
+            return source
+        if isinstance(source, dict):
+            return cls.from_dict(source)
+        text = str(source)
+        candidate = Path(text)
+        if "\n" not in text and candidate.is_file():
+            text = candidate.read_text(encoding="utf-8")
+        return cls.from_dict(json.loads(text))
 
 
 def fibonacci_sphere(n: int) -> np.ndarray:

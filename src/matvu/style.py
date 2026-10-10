@@ -21,6 +21,7 @@ class Style:
     bond_tolerance: float = 1.20
     metal_metal_bonds: bool = False
     draw_bonds: bool = True
+    cell: str = "auto"  # unit-cell frame: "auto" | "always" | "never"
     boundary_padding: float = 0.10  # fractional margin of mirrored boundary atoms
 
     # colours

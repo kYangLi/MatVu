@@ -93,9 +93,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="draw metal-metal bonds (default: off)",
     )
     render_parser.add_argument(
+        "--cell",
+        default=None,
+        choices=("auto", "always", "never"),
+        help="unit-cell frame: auto (skip molecular boxes and 2D slabs), always, never",
+    )
+    render_parser.add_argument(
+        "--force-cell",
+        dest="cell",
+        action="store_const",
+        const="always",
+        help="alias for --cell always (frame only, the viewpoint is unchanged)",
+    )
+    render_parser.add_argument(
         "--no-cell",
-        action="store_true",
-        help="hide the unit cell frame",
+        dest="cell",
+        action="store_const",
+        const="never",
+        help="alias for --cell never",
     )
     render_parser.add_argument(
         "--boundary-padding",
@@ -204,8 +219,8 @@ def _cmd_render(args) -> int:
         style.draw_bonds = False
     if args.metal_bonds:
         style.metal_metal_bonds = True
-    if args.no_cell:
-        style.draw_cell = False
+    if args.cell is not None:
+        style.cell = args.cell
     if args.perspective is not None:
         style.perspective = args.perspective
     if args.boundary_padding is not None:

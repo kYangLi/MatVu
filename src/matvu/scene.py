@@ -8,7 +8,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from . import elements, palettes
-from .geometry import find_bonds, principal_axes
+from .geometry import find_bonds
 from .structure import Structure, formula_from_symbols
 from .style import Style
 
@@ -47,16 +47,22 @@ class Scene:
         return formula_from_symbols(symbols)
 
 
-SLAB_FLATNESS = 0.45
 MOLECULAR_SPAN = 0.5
+MOLECULE_VACUUM_MIN = 4.0  # Angstrom of vacuum required on every axis
 _SPAN_TOLERANCE = 1e-6
+SLAB_VACUUM_MIN = 4.0  # Angstrom of vacuum along the thin axis of a slab
+SLAB_SPAN_MAX = 0.5  # atoms may occupy at most half the cell in that axis
 
 
-def _spans_like_molecule(fractional: np.ndarray) -> bool:
-    """True when atoms occupy clearly less than the full cell in every axis."""
+def _is_molecular_cell(fractional: np.ndarray, lengths: np.ndarray) -> bool:
+    """True when the cell is a vacuum box: atoms confined far from all faces."""
     if fractional.size == 0:
         return False
-    return float(np.ptp(fractional, axis=0).max()) < MOLECULAR_SPAN - _SPAN_TOLERANCE
+    spans = np.ptp(fractional, axis=0)
+    if float(spans.max()) >= MOLECULAR_SPAN - _SPAN_TOLERANCE:
+        return False
+    vacuum = np.asarray(lengths, dtype=float) * (1.0 - spans)
+    return bool(np.all(vacuum >= MOLECULE_VACUUM_MIN))
 
 
 def molecular_box(scene: Scene) -> bool:
@@ -68,13 +74,28 @@ def molecular_box(scene: Scene) -> bool:
     if scene.n_atoms == 0:
         return False
     fractional = (scene.positions - scene.cell_origin) @ np.linalg.inv(scene.lattice)
-    return _spans_like_molecule(fractional)
+    lengths = np.linalg.norm(np.asarray(scene.lattice, dtype=float), axis=1)
+    return _is_molecular_cell(fractional, lengths)
 
 
-def slab_normal(scene: Scene, *, flatness: float = SLAB_FLATNESS) -> np.ndarray | None:
-    """Normal of a quasi-2D slab (layered material), or ``None``.
+def _periodic_span(values: np.ndarray) -> float:
+    """Fractional extent of points on a periodic axis (largest gap removed)."""
+    if values.size < 2:
+        return 0.0
+    scaled = np.sort(values % 1.0)
+    gaps = np.diff(scaled)
+    wrap = scaled[0] + 1.0 - scaled[-1]
+    return float(max(0.0, 1.0 - max(float(gaps.max()), float(wrap))))
 
-    Molecular vacuum boxes are excluded, so flat molecules are not slabs.
+
+def slab_normal(scene: Scene) -> np.ndarray | None:
+    """Normal of a genuinely layered structure (vacuum gap), or ``None``.
+
+    A slab fills the cell in two lattice directions and leaves several
+    Angstroms of vacuum along a third one. This is a property of the lattice
+    and the fractional coordinates, so slightly flattened 3D crystals and
+    elongated cells are no longer mistaken for slabs; the point-cloud shape is
+    only meaningful for finite molecules, which are excluded separately.
     """
     if scene.n_atoms < 3:
         return None
@@ -84,15 +105,22 @@ def slab_normal(scene: Scene, *, flatness: float = SLAB_FLATNESS) -> np.ndarray 
         return None
     if molecular_box(scene):
         return None
-    weights = np.array([elements.atomic_mass(s) for s in scene.symbols])
-    values, axes = principal_axes(scene.positions, weights)
-    if values[0] <= 1e-12:
+    lattice = np.asarray(scene.lattice, dtype=float)
+    lengths = np.linalg.norm(lattice, axis=1)
+    fractional = (scene.positions - scene.cell_origin) @ np.linalg.inv(lattice)
+    raw_spans = np.ptp(fractional, axis=0)
+    if float(raw_spans.min()) >= 0.95 - 1e-6:
+        return None  # atoms fill the cell in every direction: never a slab
+    spans = np.array([_periodic_span(fractional[:, axis]) for axis in range(3)])
+    vacuum = lengths * (1.0 - spans)
+    thin = int(np.argmax(vacuum))
+    if vacuum[thin] < SLAB_VACUUM_MIN:
         return None
-    thickness = float(np.sqrt(max(values[2], 0.0)))
-    width = float(np.sqrt(values[0]))
-    if width <= 1e-12 or thickness > flatness * width:
+    if spans[thin] > SLAB_SPAN_MAX:
         return None
-    return axes[:, 2].astype(float)
+    if vacuum[thin] < 2.0 * float(np.delete(vacuum, thin).max()):
+        return None  # the vacuum direction must clearly dominate
+    return (lattice[thin] / lengths[thin]).astype(float)
 
 
 # Index pairs of the 12 edges of a cube (corner bit order: i*4 + j*2 + k).
@@ -104,27 +132,29 @@ CELL_EDGE_INDICES: list[tuple[int, int]] = [
 ]
 
 
-def cell_corners(scene: Scene) -> np.ndarray | None:
+def cell_corners(scene: Scene, mode: str = "auto") -> np.ndarray | None:
     """Eight corners of the displayed cell in scene coordinates, or ``None``.
 
-    Returns ``None`` for non-periodic, zero-volume, *molecular* and *slab*
-    cells: molecules (atoms occupying less than half of every lattice
-    direction) and 2D layered materials do not get a frame.
+    ``mode`` controls the frame policy independently of the viewpoint:
+
+    * ``"auto"`` — skip molecular vacuum boxes and genuine 2D slabs;
+    * ``"always"`` — draw the frame for any periodic structure with a valid
+      cell (useful for batch figures where every material should carry a box);
+    * ``"never"`` — no frame at all.
     """
+    if mode == "never":
+        return None
+    if mode not in ("auto", "always"):
+        raise ValueError(f"unknown cell mode {mode!r}; expected auto/always/never")
     if scene.cell_origin is None or scene.lattice is None:
         return None
     if not any(scene.pbc):
         return None
     if abs(np.linalg.det(scene.lattice)) < 1e-9:
         return None
-    if molecular_box(scene):
-        return None
-    if slab_normal(scene) is not None:
-        return None  # 2D materials: no box edges
     if scene.n_atoms == 0:
         return None
-    fractional = (scene.positions - scene.cell_origin) @ np.linalg.inv(scene.lattice)
-    if float(np.ptp(fractional, axis=0).max()) < 0.5:
+    if mode == "auto" and (molecular_box(scene) or slab_normal(scene) is not None):
         return None
     origin = np.asarray(scene.cell_origin, dtype=float)
     lattice = np.asarray(scene.lattice, dtype=float)
@@ -161,7 +191,8 @@ def _boundary_images(structure: Structure, margin: float) -> Structure:
     if structure.volume < 1e-12 or not any(structure.pbc):
         return structure
     fractional = structure.frac_coords
-    if _spans_like_molecule(fractional):
+    lengths = np.linalg.norm(np.asarray(structure.lattice, dtype=float), axis=1)
+    if _is_molecular_cell(fractional, lengths):
         return structure  # molecular vacuum box
 
     existing = structure.cart_coords

@@ -90,6 +90,17 @@ def test_graphene_auto_view_is_tilted():
     assert 10.0 < angle < 65.0
 
 
+def test_view_json_round_trip(tmp_path):
+    view = View([0.3, -0.5, 0.8])
+    path = tmp_path / "view.json"
+    view.to_json(path)
+    loaded = View.from_json(path)
+    assert np.allclose(loaded.direction, view.direction)
+    assert np.allclose(loaded.up_hint, view.up_hint)
+    assert np.allclose(View.from_json(view.to_json()).direction, view.direction)
+    assert np.allclose(View.from_dict(view.to_dict()).direction, view.direction)
+
+
 def test_cubic_crystals_share_one_view():
     from pathlib import Path
 

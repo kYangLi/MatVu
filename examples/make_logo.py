@@ -146,6 +146,41 @@ def draw_mark(ax, box, zorder=10):
             )
         )
 
+    # small camera lens in the lower-right of the viewfinder, just focused
+    lens = place(0.49, -0.49)
+    lens_r = 0.125 * scale
+    lens_edge = max(1.5, lens_r * 72 * 0.16)
+    ax.add_patch(
+        Circle(
+            lens,
+            lens_r,
+            facecolor="#D9E4EA",
+            edgecolor=CHARCOAL,
+            linewidth=lens_edge,
+            zorder=zorder + 4,
+        )
+    )
+    ax.add_patch(
+        Circle(
+            lens,
+            lens_r * 0.52,
+            facecolor=TEAL,
+            edgecolor=_darken(TEAL, 0.55),
+            linewidth=lens_edge * 0.7,
+            zorder=zorder + 5,
+        )
+    )
+    glint = (lens[0] - lens_r * 0.34, lens[1] + lens_r * 0.34)
+    ax.add_patch(
+        Circle(
+            glint,
+            lens_r * 0.2,
+            facecolor="white",
+            edgecolor="none",
+            zorder=zorder + 6,
+        )
+    )
+
 
 def _text_width_units(text: str, fontsize: float, weight: str = "bold") -> float:
     """Width of ``text`` in canvas units (1 unit = 1 inch = 72 pt)."""

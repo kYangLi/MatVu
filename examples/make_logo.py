@@ -1,9 +1,8 @@
 """Generate the MatVu logo assets into ``docs/_image/``.
 
-The mark is a unit-cell cube with a small ball-and-stick fragment and a
-viewing cone entering from the chosen vantage point. Colours follow the
-official ``matvu`` palette; spheres reuse the matplotlib backend's sphere
-shading, so the logo matches the renders.
+Flat 2D cartoon mark: a small ball-and-stick fragment drawn with solid
+colours and bold outlines (matching the ``toon`` render style), framed by
+four viewfinder corners. Colours follow the official ``matvu`` palette.
 
 Usage::
 
@@ -20,10 +19,7 @@ matplotlib.use("Agg")
 matplotlib.rcParams["svg.fonttype"] = "path"
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.patches import Circle, Polygon
-
-from matvu.backends.mpl import _sphere_sprite
-from matvu.style import Style
+from matplotlib.patches import Circle
 
 OUT = Path(__file__).resolve().parents[1] / "docs" / "_image"
 OUT.mkdir(parents=True, exist_ok=True)
@@ -34,129 +30,121 @@ SAND = "#D6B08C"
 TEAL = "#4E8FA3"
 GOLD = "#D9B93C"
 GRAY = "#7A828C"
-BOND = "#A6ADB6"
 
-_STYLE = Style()
+# molecule: (x, y, colour, radius) in local units, hub first for bonds
+ATOMS = [
+    (-0.34, -0.20, TEAL, 0.130),
+    (0.34, -0.20, SAND, 0.130),
+    (0.00, 0.40, RED, 0.130),
+    (0.00, 0.00, CHARCOAL, 0.155),
+]
+BRACKET = 0.70
+BRACKET_ARM = 0.20
 
 
-def _rgb(colour: str) -> np.ndarray:
+def _hex_to_rgb(colour: str) -> np.ndarray:
     return np.array(
         [int(colour.lstrip("#")[i : i + 2], 16) / 255.0 for i in (0, 2, 4)]
     )
 
 
-def _ball(ax, x, y, radius, colour, zorder):
-    sprite = _sphere_sprite(_rgb(colour), _STYLE)
-    ax.imshow(
-        sprite,
-        extent=(x - radius, x + radius, y - radius, y + radius),
-        origin="upper",
-        interpolation="bilinear",
+def _rgb_to_hex(rgb: np.ndarray) -> str:
+    return "#" + "".join(f"{round(max(0.0, min(1.0, c)) * 255):02X}" for c in rgb)
+
+
+def _darken(colour: str, factor: float) -> str:
+    return _rgb_to_hex(_hex_to_rgb(colour) * factor)
+
+
+def _bond(ax, start, end, colour_a, colour_b, width_pt, zorder):
+    middle = ((start[0] + end[0]) / 2, (start[1] + end[1]) / 2)
+    outline = _darken(
+        _rgb_to_hex((_hex_to_rgb(colour_a) + _hex_to_rgb(colour_b)) / 2), 0.42
+    )
+    ax.plot(
+        [start[0], end[0]],
+        [start[1], end[1]],
+        color=outline,
+        lw=width_pt * 1.26,
+        solid_capstyle="round",
         zorder=zorder,
     )
+    for point_a, point_b, colour in (
+        (start, middle, colour_a),
+        (middle, end, colour_b),
+    ):
+        ax.plot(
+            [point_a[0], point_b[0]],
+            [point_a[1], point_b[1]],
+            color=_darken(colour, 0.82),
+            lw=width_pt,
+            solid_capstyle="round",
+            zorder=zorder + 0.1,
+        )
 
 
 def draw_mark(ax, box, zorder=10):
-    """Draw the MatVu mark scaled to fit ``box = (x, y, width, height)``."""
+    """Draw the flat cartoon mark scaled to fit ``box = (x, y, w, h)``."""
     x0, y0, width, height = box
-    u = np.array([np.cos(np.radians(30)), -np.sin(np.radians(30))])
-    v = np.array([-np.cos(np.radians(30)), -np.sin(np.radians(30))])
-    w = np.array([0.0, 1.0])
-    vantage3 = (0.5, 0.5, 1.55)
+    extent = 2 * (BRACKET + 0.14)
+    scale = min(width, height) / extent
+    centre = np.array([x0 + width / 2, y0 + height / 2])
 
-    def raw(fx, fy, fz):
-        return fx * u + fy * v + fz * w
+    # centre the molecule's bounding box on the viewfinder centre
+    xs = [x - r for x, _, _, r in ATOMS] + [x + r for x, _, _, r in ATOMS]
+    ys = [y - r for _, y, _, r in ATOMS] + [y + r for _, y, _, r in ATOMS]
+    shift = np.array([(min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2])
 
-    cube_pts = [
-        raw(fx, fy, fz) for fx in (0.0, 1.0) for fy in (0.0, 1.0) for fz in (0.0, 1.0)
-    ]
-    points = np.array(cube_pts + [raw(*vantage3)])
-    low, high = points.min(axis=0), points.max(axis=0)
-    span = np.maximum(high - low, 1e-9)
-    scale = 0.98 * min(width / span[0], height / span[1])
-    offset = (
-        np.array([x0 + width / 2, y0 + height / 2]) - (low + high) / 2 * scale
-    )
+    def place(x, y):
+        p = centre + (np.array([x, y]) - shift) * scale
+        return float(p[0]), float(p[1])
 
-    def project(fx, fy, fz):
-        return raw(fx, fy, fz) * scale + offset
+    # viewfinder corners (cartoon focus frame)
+    bracket_lw = max(1.6, 0.042 * scale * 72)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            corner = place(sx * BRACKET, sy * BRACKET)
+            ax.plot(
+                [corner[0], place(sx * BRACKET - sx * BRACKET_ARM, sy * BRACKET)[0]],
+                [corner[1], corner[1]],
+                color=GOLD,
+                lw=bracket_lw,
+                solid_capstyle="round",
+                zorder=zorder,
+            )
+            ax.plot(
+                [corner[0], corner[0]],
+                [corner[1], place(sx * BRACKET, sy * BRACKET - sy * BRACKET_ARM)[1]],
+                color=GOLD,
+                lw=bracket_lw,
+                solid_capstyle="round",
+                zorder=zorder,
+            )
 
-    corners = {
-        (fx, fy, fz): project(fx, fy, fz)
-        for fx in (0.0, 1.0)
-        for fy in (0.0, 1.0)
-        for fz in (0.0, 1.0)
-    }
-    for (fx, fy, fz), p in corners.items():
-        for axis in range(3):
-            q = [fx, fy, fz]
-            if q[axis] == 0.0:
-                q[axis] = 1.0
-                ax.plot(
-                    [p[0], corners[tuple(q)][0]],
-                    [p[1], corners[tuple(q)][1]],
-                    color=CHARCOAL,
-                    alpha=0.45,
-                    lw=1.1,
-                    solid_capstyle="round",
-                    zorder=zorder,
-                )
-
-    vantage = project(*vantage3)
-    left_top = corners[(0.0, 1.0, 1.0)]
-    right_top = corners[(1.0, 0.0, 1.0)]
-    ax.add_patch(
-        Polygon(
-            [vantage, left_top, right_top],
-            closed=True,
-            facecolor=GOLD,
-            alpha=0.15,
-            edgecolor="none",
-            zorder=zorder - 2,
-        )
-    )
-    for corner in (left_top, right_top):
-        ax.plot(
-            [vantage[0], corner[0]],
-            [vantage[1], corner[1]],
-            color=GOLD,
-            alpha=0.6,
-            lw=1.0,
-            zorder=zorder - 1,
+    hub = ATOMS[-1][:2]
+    bond_width = ATOMS[-1][3] * scale * 72 * 0.52
+    for x, y, colour, _ in ATOMS[:-1]:
+        _bond(
+            ax,
+            place(*hub),
+            place(x, y),
+            ATOMS[-1][2],
+            colour,
+            bond_width,
+            zorder + 1,
         )
 
-    radius = 0.125 * scale
-    atoms = [
-        (0.84, 0.50, 0.50, SAND),
-        (0.50, 0.84, 0.50, TEAL),
-        (0.50, 0.50, 0.84, RED),
-        (0.50, 0.50, 0.50, CHARCOAL),
-    ]
-    hub = project(0.5, 0.5, 0.5)
-    for fx, fy, fz, _ in atoms[:-1]:
-        q = project(fx, fy, fz)
-        ax.plot(
-            [hub[0], q[0]],
-            [hub[1], q[1]],
-            color=BOND,
-            lw=radius * 72 * 0.55,
-            solid_capstyle="round",
-            zorder=zorder + 1,
+    for x, y, colour, radius in ATOMS:
+        ax.add_patch(
+            Circle(
+                place(x, y),
+                radius * scale,
+                facecolor=colour,
+                edgecolor=_darken(colour, 0.45),
+                linewidth=max(1.4, radius * scale * 72 * 0.22),
+                zorder=zorder + 2,
+            )
         )
-    for fx, fy, fz, colour in atoms:
-        q = project(fx, fy, fz)
-        _ball(ax, q[0], q[1], radius, colour, zorder + 2)
-
-    ax.add_patch(
-        Circle(
-            vantage,
-            radius=0.075 * scale,
-            facecolor=GOLD,
-            edgecolor="white",
-            linewidth=1.4,
-            zorder=zorder + 3,
-        )
-    )
 
 
 def _text_width_units(text: str, fontsize: float, weight: str = "bold") -> float:
@@ -216,10 +204,10 @@ def _save(figure, path_stem):
 def make_logo(path_stem: str, tagline: bool, pure: bool = False):
     if pure:
         figure, ax = _new_axes(2.2, 2.2)
-        draw_mark(ax, (0.15, 0.15, 1.9, 1.9))
+        draw_mark(ax, (0.12, 0.12, 1.96, 1.96))
     else:
         figure, ax = _new_axes(9.6, 1.8)
-        draw_mark(ax, (0.12, 0.10, 1.62, 1.60))
+        draw_mark(ax, (0.10, 0.10, 1.62, 1.60))
         draw_wordmark(ax, 2.05, 1.08, 78)
         if tagline:
             ax.text(
@@ -237,7 +225,7 @@ def make_logo(path_stem: str, tagline: bool, pure: bool = False):
 def make_social_preview():
     figure, ax = _new_axes(12.8, 6.4)
     figure.patch.set_facecolor("#F7F8FA")
-    draw_mark(ax, (5.3, 3.15, 2.2, 2.1))
+    draw_mark(ax, (5.35, 3.20, 2.1, 2.0))
     draw_wordmark(ax, 6.4, 2.45, 118, align="center")
     ax.text(
         6.4,

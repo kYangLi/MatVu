@@ -8,7 +8,7 @@ automatically and renders a publication-ready ball-and-stick figure::
     render("POSCAR", view="auto")
 """
 
-__version__ = "0.1.0.dev0"
+__version__ = "0.1.0"
 
 from .backends import available_backends, register_backend
 from .gallery import rank_candidates, render_candidates

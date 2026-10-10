@@ -75,17 +75,24 @@ Early development, but already useful:
 
 ## Status
 
-Early local development — **not released, not on PyPI, the API may change.**
+**0.1.0** — first public release. The core is stable; the API may still evolve
+in minor releases.
 
-Roadmap: interactive web backend, perspective camera,
-polyhedra and space-filling styles, CIF/XYZ readers, symmetry-aware viewpoints.
+Roadmap: interactive web backend, polyhedra and space-filling styles,
+CIF/XYZ readers, symmetry-aware viewpoints.
 See `docs/design.md` for the architecture and the viewpoint scoring model, and
 `docs/roadmap.md` for the development plan and handover notes.
 
-## Install (development)
+## Install
 
 ```bash
-git clone https://github.com/<account>/MatVu   # once the repository is public
+pip install matvu
+```
+
+Development setup:
+
+```bash
+git clone https://github.com/<account>/MatVu
 cd MatVu
 uv venv
 uv pip install -e ".[dev]"

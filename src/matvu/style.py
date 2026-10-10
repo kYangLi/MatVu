@@ -29,7 +29,6 @@ class Style:
     palette_overrides: dict[str, str] | None = None  # per-element #RRGGBB overrides
 
     # cell frame
-    draw_cell: bool = True
     cell_linewidth: float = 1.0  # in points, at the final image size
     cell_colour: str = "#4d4d4d"
 

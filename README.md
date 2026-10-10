@@ -79,10 +79,12 @@ pytest
 One line is enough — the view is chosen automatically:
 
 ```python
-from matvu import render
+from matvu import render, render_array
 
 render("POSCAR", view="auto")            # -> POSCAR_view.png (transparent)
 render("POSCAR", style="toon", view="a") # explicit style and view
+
+image = render_array("POSCAR", view="auto")  # (H, W, 4) float RGBA in memory
 ```
 
 Command line:

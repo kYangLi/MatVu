@@ -23,3 +23,6 @@ htmlcov/
 # MatVu outputs
 examples/out/
 preview.png
+
+# Local, machine-specific notes — never publish
+*.local.md

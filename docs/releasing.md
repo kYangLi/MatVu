@@ -72,9 +72,9 @@ GitHub Release; the workflow uploads the artifacts.
 
 ## Git remote
 
-Push access is configured per machine with a dedicated SSH key kept outside the repository; the remote is:
+Push access is configured per machine with a dedicated SSH key kept outside
+the repository; the remote is:
+
 ```bash
 git remote add origin git@github.com:<account>/MatVu.git
 ```
-
-Write access is configured locally; the key never lives in the repository.

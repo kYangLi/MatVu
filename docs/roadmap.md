@@ -152,11 +152,9 @@ uv venv && uv pip install -e ".[dev]"
    > 读 `docs/roadmap.md` 与 `docs/design.md`，先跑 pytest 确认 27 个测试通过，
    > 然后从路线图 P0 开始实现；保持核心/后端解耦与现有代码风格。
 
-### 首次 push 流程（已商定）
+### 首次 push 流程
 
-1. 在 GitHub 建公开仓库 `MatVu`；
-2. （本机密钥与远程配置属于私有记录，不入库）
-3. `git remote add origin git@github.com:<账号>/MatVu.git && git push -u origin main`。
+已于 2026-10-10 完成（公开仓库 `MatVu` + PyPI 0.1.0）。本机密钥路径、SSH 别名、远程凭据等私有记录一律不入库，只保存在被 gitignore 忽略的本地记录（`*.local.md`）中。
 
 ### 命名与许可核查记录（2026-10-03）
 

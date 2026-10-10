@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.1 (2026-10-10)
+## 0.1.2 (2026-10-10)
 
 - **Fixed a severe `slab_normal()` misclassification**: layered detection now
   uses the lattice and the fractional vacuum (one direction with a
@@ -19,6 +19,13 @@
 - New `render_array()` returns the RGBA image in memory (no file round-trip)
   and `View.to_json()` / `View.from_json()` make viewpoints reproducible.
 - Removed a duplicated span check in `cell_corners()`.
+- **New logo and presentation-ready README**: flat 2D cartoon mark (ball-and-
+  stick fragment in a viewfinder frame with a gold focus dot), a README with a
+  feature overview and gallery, and an `examples/` folder that now ships
+  runnable scripts (`showcase.py`, `palette_preview.py`) plus ready-made
+  figures in `examples/figures/`; repository tooling moved to `scripts/`.
+  All README images use absolute raw URLs, so they render on PyPI as well.
+- Source distributions no longer carry image assets (leaner sdist).
 
 ## 0.1.0 (2026-10-10)
 

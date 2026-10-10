@@ -42,8 +42,9 @@
    /tmp/matvu-check/bin/matvu --version
    ```
 
-7. Create a GitHub Release (tag `v0.1.0`) — the `release.yml` workflow then
-   builds, checks and publishes automatically (see below).
+7. Create a GitHub Release for the new tag (e.g. `vX.Y.Z`) — the
+   `release.yml` workflow then builds, checks and publishes automatically
+   (see below).
 
 ## Automated releases (GitHub Actions)
 

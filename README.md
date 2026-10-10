@@ -1,99 +1,70 @@
-# MatVu
+<!-- markdownlint-disable MD033 MD036 -->
+<h1><p align="center">
+  <img src="https://raw.githubusercontent.com/kYangLi/MatVu/main/docs/_image/logo-large.svg" alt="MatVu Logo" width="560">
+</p></h1>
+
+<div align="center">
+
+### Automatic viewpoint optimization for materials structures
 
 [![tests](https://github.com/kYangLi/MatVu/actions/workflows/test.yml/badge.svg)](https://github.com/kYangLi/MatVu/actions/workflows/test.yml)
-[![PyPI](https://img.shields.io/pypi/v/matvu)](https://pypi.org/project/matvu/)
-[![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![release](https://github.com/kYangLi/MatVu/actions/workflows/release.yml/badge.svg)](https://github.com/kYangLi/MatVu/actions/workflows/release.yml)
+[![PyPI Version](https://img.shields.io/pypi/v/matvu.svg)](https://pypi.org/project/matvu/)
+[![Python versions](https://img.shields.io/pypi/pyversions/matvu.svg)](https://pypi.org/project/matvu/)
+[![License](https://img.shields.io/pypi/l/matvu.svg)](https://pypi.org/project/matvu/)
 
-**Automatic viewpoint optimization and visualization for materials structures.**
+[![GitHub Issues](https://img.shields.io/github/issues/kYangLi/MatVu.svg)](https://github.com/kYangLi/MatVu/issues)
+[![GitHub Stars](https://img.shields.io/github/stars/kYangLi/MatVu.svg?style=social)](https://github.com/kYangLi/MatVu/stargazers)
 
-Point MatVu at a structure — a POSCAR to start with — and it works out a
-clear, publication-ready view for you. No manual rotating.
+*Point it at a structure — it finds the view.*
+</div>
 
-```python
-from matvu import render
+*MatVu* is an automatic viewpoint optimization and visualization toolkit for materials structures. Give it a structure file (a POSCAR to start with) and it works out a clear, publication-ready viewing direction on its own — no manual rotating, zooming and re-rendering until the figure looks right.
 
-render("POSCAR", view="auto")   # -> POSCAR_view.png
-```
+At the core of *MatVu* is **a viewpoint search that treats the camera angle as an optimization problem**. It scores hundreds of candidate directions by projected atom overlap, bond foreshortening and framing, keeps a comfortable above-horizon elevation band, and then picks the view that spreads the atoms out most evenly (*maximin projected dispersion*). Built-in conventions make series of figures consistent: every cubic crystal shares one fixed three-quarter view, layered 2D materials are shown at a ~30° tilt, and flat molecules keep their face-on view.
 
-## Why
+Rendering is handled by pluggable backends: a **`tracer`** backend that performs analytic ray casting in pure NumPy (exact sphere/stick occlusion, no OpenGL/VTK, works headless) and a fast **`matplotlib`** preview backend. Three look presets — `3d`, `toon` (animation/cel style) and `flat` — share the same geometry, and a **theme system** lets you design your own element colours and atom radii in a small TOML file.
 
-Tools like VESTA and ASE are powerful, but choosing a good camera angle is
-still manual work: you rotate, zoom and re-render until the figure looks right.
-MatVu treats the viewpoint itself as an optimization problem. It analyses
-the geometry — projected atom overlap, bond foreshortening, framing — and picks
-a direction that shows the structure clearly, then renders a ball-and-stick
-figure suitable for papers.
+*MatVu* handles periodic crystals, 2D materials and finite molecules through one uniform `Structure` model, draws symmetric unit-cell figures with mirrored boundary atoms, and writes transparent PNG/PDF/SVG by default.
 
-## Features
+---
 
-Early development, but already useful:
+- [Core Features](#core-features)
+- [Quick Start](#quick-start)
+  - [Installation](#installation)
+  - [Basic Usage](#basic-usage)
+  - [Rendering Styles](#rendering-styles)
+  - [Uniform-Scale Series](#uniform-scale-series)
+- [Themes](#themes)
+- [Citation](#citation)
+- [Application Scenarios](#application-scenarios)
+- [Contributing](#contributing)
+- [License](#license)
+- [Support \& Contact](#support--contact)
 
-- `view="auto"`: viewpoint search over hundreds of candidate directions
-  (Fibonacci sampling + principal axes + lattice directions, then local refinement)
-- `matvu candidates`: contact sheet of the top-ranked viewpoints, annotated with
-  angles and scores — the tool used to calibrate the scoring model
-- Sensible defaults for metals: metal-metal bonds are skipped and bulk metals
-  render as a clear lattice of distinct spheres (`--metal-bonds` re-enables
-  the sticks)
-- Fixed-canvas option for a uniform-scale series: `--canvas W H` (Angstrom,
-  also `Style.canvas`) keeps the canvas and atom size identical across
-  figures; the canvas is a *minimum* size, so oversized structures expand the
-  image instead of clipping (scale preserved). By default there is no canvas:
-  every figure is fitted to its own structure, so small molecules are shown
-  large enough to read
-- All cubic crystals automatically share one fixed three-quarter viewpoint
-  (az 45°, el 23° relative to their lattice), so a series of cubic structures
-  is rendered from exactly the same angle
-- Automatic viewpoint selection uses a maximin projected-dispersion criterion
-  for crystals (atoms spread out evenly; views stay in a comfortable
-  above-horizon elevation band, neither looking up nor steep top-down), a
-  ~30 degree tilt for layered materials and face-on views for molecules
-- Three look presets, all sharing the same automatic viewpoint and the
-  perspective camera: `3d` (shaded, default), `toon` (animation/cel style:
-  flat colours, two-tone shadow, outlines) and `flat` (pure flat fill with
-  outlines, no shading). `toon`/`flat` add an aerial-perspective depth fade.
-  Example: `matvu render --style toon`
-- Transparent background by default (PNG/TIFF/WebP with alpha, PDF/SVG
-  transparent too); `--opaque` restores a white background. Hydrogen uses a
-  light grey instead of pure white so it stays visible
-- Atom sizes are strictly proportional to covalent radii at a uniform scale
-  (no forced minimum radius)
-- Three designed element palettes (`matvu`, `jmol`, `pastel`) with a
-  user-editable TOML theme format covering colours, radii and style
-  overrides — see [Themes](#themes)
-- Unit cell frame drawn for 3D crystals only; molecular vacuum boxes and 2D
-  slab cells are detected automatically and skipped (`--no-cell` hides it)
-- Mild perspective by default (`--perspective 0` for orthographic);
-  layered 2D materials are automatically shown at a ~30 degree tilt while
-  flat molecules keep their face-on view
-- Boundary atoms are mirrored into a thin margin outside the cell, so the
-  cell looks symmetric and complete (the classic cell figure); isolated
-  copies are dropped automatically, `--boundary-padding 0` disables it
-- POSCAR reader with a small plugin interface for future formats (CIF, XYZ, ...)
-- Ball-and-stick rendering with two backends:
-  - `tracer` (default): an analytic ray-casting renderer in pure numpy with a
-    z-buffer — exact sphere/stick occlusion, 2x supersampling, no OpenGL/VTK
-  - `matplotlib`: fast preview backend (PNG / PDF / SVG)
-- Core architecture prepared for multiple backends (interactive web view planned)
-- Periodic crystals, 2D materials and finite molecules through one `Structure` model
+## Core Features
 
-## Status
+- **Automatic Viewpoint Optimization:** Scores hundreds of candidate directions (Fibonacci sampling plus high-symmetry directions) for occlusion, bond foreshortening and framing, then selects the most evenly spread view; cubic lattices share one fixed three-quarter convention.
 
-**0.1.0** — first public release. The core is stable; the API may still evolve
-in minor releases.
+- **Publication-Ready Output:** Transparent PNG/TIFF/WebP and PDF/SVG by default, strict atom radii (display sizes proportional to covalent radii), designed element palettes and symmetric unit-cell frames.
 
-Roadmap: interactive web backend, polyhedra and space-filling styles,
-CIF/XYZ readers, symmetry-aware viewpoints.
-See `docs/design.md` for the architecture and the viewpoint scoring model, and
-`docs/roadmap.md` for the development plan and handover notes.
+- **Multiple Rendering Backends:** An analytic ray-casting `tracer` (pure NumPy, exact occlusion, supersampling, orthographic or perspective) and a fast `matplotlib` preview backend — more backends can be registered.
 
-## Install
+- **Look Presets and Themes:** `3d`, `toon` (cel shading) and `flat` styles; three official palettes (`matvu`, `jmol`, `pastel`) plus user-editable TOML themes covering colours, radii and any style parameter.
+
+- **Works for Crystals, 2D Materials and Molecules:** One `Structure` model for periodic cells (with mirrored boundary atoms), layered slabs (automatic tilted views) and finite molecules (face-on views), driven by a plugin reader registry.
+
+## Quick Start
+
+### Installation
+
+Publish version:
 
 ```bash
 pip install matvu
 ```
 
-Development setup:
+Development version:
 
 ```bash
 git clone https://github.com/kYangLi/MatVu
@@ -103,26 +74,53 @@ uv pip install -e ".[dev]"
 pytest
 ```
 
-## Examples
+### Basic Usage
 
-```bash
-.venv/bin/python examples/showcase.py
+One line is enough — the view is chosen automatically:
+
+```python
+from matvu import render
+
+render("POSCAR", view="auto")            # -> POSCAR_view.png (transparent)
+render("POSCAR", style="toon", view="a") # explicit style and view
 ```
 
-Renders every structure in `examples/structures/` with an automatically chosen
-viewpoint and the tracer backend, writing individual figures plus a contact
-sheet to `examples/out/`.
+Command line:
+
+```bash
+matvu render POSCAR --style toon -o figure.png   # animation-style figure
+matvu render POSCAR --canvas 12 12 -o fig.png   # uniform scale across figures
+matvu candidates POSCAR -n 12 -o candidates.png # ranked viewpoint contact sheet
+matvu info POSCAR                               # composition, cell, volume
+matvu theme list                                # built-in themes and palettes
+```
+
+### Rendering Styles
+
+| Preset | Look | Camera |
+| --- | --- | --- |
+| `3d` (default) | shaded ball-and-stick, soft highlights | perspective |
+| `toon` | animation/cel style: flat colours, two-tone shadow, outlines | perspective |
+| `flat` | pure flat fill with outlines, no shading | perspective |
+
+All presets share the same automatic viewpoint; `toon` and `flat` add an aerial-perspective depth fade.
+
+### Uniform-Scale Series
+
+By default every figure is fitted to its own structure. For a series of comparable figures, pass the same canvas:
+
+```bash
+matvu render POSCAR --canvas 18 18 -o fig.png
+```
+
+The canvas is a *minimum* size: if a structure does not fit, the image expands instead of clipping, so atoms keep exactly the same size across the series.
 
 ## Themes
 
-Colours and sizes live in a **theme**: a small TOML file with a palette,
-atom radii and optional style overrides. Three carefully designed palettes
-ship with MatVu — `matvu` (default: modern, muted, family-coherent),
-`jmol` (classic CPK) and `pastel` (soft variant):
+Colours and sizes live in a **theme**: a small TOML file with a palette, atom radii and optional style overrides. Three carefully designed palettes ship with MatVu — `matvu` (default: modern, muted, family-coherent), `jmol` (classic CPK) and `pastel` (soft variant):
 
 ```bash
 matvu render POSCAR --style toon --palette pastel -o fig.png
-matvu theme list
 matvu theme export matvu -o my-theme.toml     # full default theme to edit
 matvu render POSCAR --theme my-theme.toml -o fig.png
 ```
@@ -144,22 +142,42 @@ O = "#FF5A4A"
 Fe = "#B87333"
 ```
 
-A `[style]` table can additionally set any `Style` field
-(`depth_cue`, `background`, `shading`, ...).
+A `[style]` table can additionally set any `Style` field (`depth_cue`, `background`, `shading`, ...).
 
-## Command line
+## Citation
 
-```bash
-matvu render POSCAR --view auto -o figure.png
-matvu render POSCAR --view a --width 4 --dpi 600 -o figure.pdf
-matvu render POSCAR --style toon -o toon.png               # animation style
-matvu render POSCAR --style flat -o flat.png               # pure flat fill
-matvu render POSCAR --canvas 12 12 -o fig.png              # uniform scale across figures
-matvu render POSCAR --backend matplotlib -o preview.png   # fast preview
-matvu candidates POSCAR -n 12 -o candidates.png
-matvu info POSCAR
-```
+*Any and all use of this software, in whole or in part, should clearly acknowledge and link to this repository.*
+
+If you use *MatVu* in academic work, please cite the software using the metadata in [`CITATION.cff`](CITATION.cff) (GitHub's **Cite this repository** button uses the same file). A methods paper is in preparation.
+
+## Application Scenarios
+
+- **Paper and thesis figures**: one command per structure, consistent viewpoints across a series, vector and transparent output ready for LaTeX/slides
+- **Teaching and presentations**: quick, readable ball-and-stick figures in `toon`/`flat` styles without a GUI
+- **High-throughput screening**: batch-render large structure sets with fixed palettes, radii and camera conventions
+- **Method development**: the viewpoint scoring, palettes and backends are modular and fully unit-tested (82 tests) — easy to extend and compare
+
+## Contributing
+
+Contributions are welcome. The workflow is short:
+
+1. Fork the repository and create a feature branch.
+2. Set up the development environment (`uv venv && uv pip install -e ".[dev]"`).
+3. Add tests for new behaviour and run the full suite: `pytest`.
+4. Open a pull request; the `tests` workflow runs on Python 3.10–3.13 for every push and PR.
+
+See [`docs/design.md`](docs/design.md) for the architecture and the viewpoint scoring model, and [`docs/releasing.md`](docs/releasing.md) for the release process.
 
 ## License
 
-GPL-3.0-or-later. See [LICENSE](LICENSE).
+GPL-3.0-or-later. See the [LICENSE](LICENSE) file for details.
+
+## Support & Contact
+
+- 🐛 **Issue Reporting**: [GitHub Issues](https://github.com/kYangLi/MatVu/issues)
+- 📦 **Package**: [pypi.org/project/matvu](https://pypi.org/project/matvu/)
+- 📖 **Design Notes**: [`docs/design.md`](docs/design.md) · [`docs/roadmap.md`](docs/roadmap.md)
+
+---
+
+*MatVu is research software: viewpoints are chosen automatically, but the judgement of a good figure stays with you — feedback and issues are always welcome.*
